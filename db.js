@@ -8,33 +8,53 @@ const PAGNE_PRICE = parseInt(process.env.PAGNE_PRICE || '2500', 10);
 
 let firestore = null;
 
+function getFirebaseCert() {
+  if (
+    process.env.FIREBASE_PROJECT_ID &&
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    process.env.FIREBASE_PRIVATE_KEY
+  ) {
+    return {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    };
+  }
+
+  const credPath =
+    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+    path.join(__dirname, 'firebase-service-account.json');
+
+  if (fs.existsSync(credPath)) {
+    const sa = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    return {
+      projectId: sa.project_id,
+      clientEmail: sa.client_email,
+      privateKey: sa.private_key,
+    };
+  }
+
+  return null;
+}
+
 function initFirebase() {
   if (firestore) return firestore;
 
-  const hasCert =
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY;
+  const cert = getFirebaseCert();
 
-  if (!hasCert && process.env.NODE_ENV === 'production') {
-    console.error('⚠️  FIREBASE_CLIENT_EMAIL et FIREBASE_PRIVATE_KEY manquants — les données ne seront PAS sauvegardées.');
+  if (!cert) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '⚠️  Clé Firebase manquante — les données ne seront PAS sauvegardées de façon permanente.'
+      );
+    }
     return null;
   }
 
   if (!admin.apps.length) {
-    if (hasCert) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-        }),
-      });
-    } else {
-      admin.initializeApp({
-        projectId: process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'invitation-mariage-eric-lopez',
-      });
-    }
+    admin.initializeApp({
+      credential: admin.credential.cert(cert),
+    });
   }
   firestore = admin.firestore();
   return firestore;

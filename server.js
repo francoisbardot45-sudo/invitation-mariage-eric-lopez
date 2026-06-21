@@ -2,6 +2,13 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+
+try {
+  require('dotenv').config();
+} catch {
+  /* dotenv optionnel */
+}
+
 const { storageMode, readRsvps, insertRsvp, deleteRsvp, updateRsvp, PAGNE_PRICE } = require('./db');
 
 const app = express();

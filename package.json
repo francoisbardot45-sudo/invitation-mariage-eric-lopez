@@ -12,6 +12,7 @@
     "deploy": "firebase deploy"
   },
   "dependencies": {
+    "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.6.0"
