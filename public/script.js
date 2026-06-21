@@ -83,7 +83,7 @@ form.addEventListener('submit', async (e) => {
     nom: form.nom.value,
     telephone: form.telephone.value,
     presence: form.presence.value,
-    nombreAdultes: form.nombreAdultes?.value || '1',
+    nombreAdultes: form.nombreAdultes?.value ?? '0',
     nombreEnfants: form.nombreEnfants?.value || '0',
     message: form.message.value,
   };

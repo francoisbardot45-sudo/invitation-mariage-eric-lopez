@@ -99,7 +99,8 @@ app.post('/api/rsvp', (req, res) => {
 
   const prenomTrim = prenom.trim();
   const nomTrim = nom.trim();
-  const adultes = presence === 'oui' ? Math.max(1, parseInt(nombreAdultes, 10) || 1) : 0;
+  const adultesRaw = presence === 'oui' ? parseInt(nombreAdultes, 10) : 0;
+  const adultes = presence === 'oui' ? (adultesRaw === 0 ? 1 : Math.max(1, adultesRaw || 1)) : 0;
   const enfants = presence === 'oui' ? Math.max(0, parseInt(nombreEnfants, 10) || 0) : 0;
   const rsvps = readRsvps();
   const entry = {
