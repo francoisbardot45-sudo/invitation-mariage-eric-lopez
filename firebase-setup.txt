@@ -24,6 +24,21 @@ WAVE / PAGNE
 - WAVE_PHONE = +2250708020626
 - WAVE_PHONE_DISPLAY = 07 08 02 06 26
 - PAGNE_PRICE = 2500
+- WAVE_PAYMENT_LINK = (optionnel) votre lien marchand Wave
+
+Lien marchand Wave (optionnel)
+------------------------------
+Pour créer VOTRE lien (pas un exemple) :
+1. Ouvrez l'app Wave sur le téléphone du compte qui reçoit les paiements
+2. Allez dans Recevoir / Demander un paiement
+3. Créez un lien de paiement
+4. Testez le lien dans le navigateur avant de l'ajouter
+5. Sur Render : WAVE_PAYMENT_LINK = votre lien (ex. https://pay.wave.com/m/M_ci_XXXX/c/ci/)
+
+Si le lien affiche « cette URL ne semble pas correcte », il est invalide ou expiré :
+recréez-en un nouveau dans l'app Wave.
+
+Sans lien marchand, les invités paient par dépôt au numéro 07 08 02 06 26.
 
 HÉBERGEMENT FIREBASE COMPLET (optionnel)
 ----------------------------------------

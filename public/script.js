@@ -18,7 +18,7 @@ let siteConfig = {
   pagnePrice: 2500,
   wavePhone: '07 08 02 06 26',
   wavePhoneDial: '+2250708020626',
-  wavePaymentLink: 'https://pay.wave.com/m/M_ci_WtvUpAxwnlbs/c/ci/',
+  wavePaymentLink: '',
   waveMerchantName: 'Eric & Lopez',
 };
 
@@ -146,18 +146,24 @@ function buildWaveUrl(amount) {
     const sep = base.includes('?') ? '&' : '?';
     return `${base}${sep}amount=${amount}`;
   }
-  const phone = (siteConfig.wavePhoneDial || siteConfig.wavePhone || '').replace(/\s/g, '');
-  if (!phone) return null;
-  return `https://pay.wave.com/send?phone=${encodeURIComponent(phone)}&amount=${amount}`;
+  return null;
 }
 
 function openWavePayment(amount) {
   const url = buildWaveUrl(amount);
-  if (!url) {
-    alert('Paiement Wave non configuré. Utilisez le dépôt manuel avec le numéro affiché.');
+  if (url) {
+    window.open(url, '_blank', 'noopener,noreferrer');
     return;
   }
-  window.open(url, '_blank', 'noopener,noreferrer');
+  if (siteConfig.wavePhone) {
+    alert(
+      `Effectuez un dépôt Wave ou Orange Money au ${siteConfig.wavePhone}\n` +
+        `Montant : ${amount.toLocaleString('fr-FR')} FCFA\n\n` +
+        'Indiquez votre nom en référence du paiement.'
+    );
+    return;
+  }
+  alert('Paiement non configuré. Contactez les mariés.');
 }
 
 async function copyWavePhone(btn) {
@@ -206,11 +212,17 @@ function showSuccessWave(pagne) {
 
   successWave.hidden = false;
   document.getElementById('success-wave-amount').textContent =
-    `${pagne.quantite} pagne(s) — ${pagne.total.toLocaleString('fr-FR')} FCFA à régler via Wave`;
+    `${pagne.quantite} pagne(s) — ${pagne.total.toLocaleString('fr-FR')} FCFA à régler`;
   document.getElementById('success-wave-phone').textContent = siteConfig.wavePhone || '';
 
   const btn = document.getElementById('btn-open-wave');
-  btn.onclick = () => openWavePayment(pagne.total);
+  if (siteConfig.wavePaymentLink) {
+    btn.textContent = 'Ouvrir la page Wave pour payer';
+    btn.onclick = () => openWavePayment(pagne.total);
+  } else {
+    btn.textContent = 'Voir les instructions de paiement';
+    btn.onclick = () => openWavePayment(pagne.total);
+  }
 }
 
 form.addEventListener('submit', async (e) => {
