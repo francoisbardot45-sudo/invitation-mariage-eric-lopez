@@ -250,7 +250,7 @@
                   <input type="radio" name="pagnePaiement" value="wave">
                   <span class="radio-icon">📱</span>
                   <span class="radio-label">Payer avec Wave / Orange Money</span>
-                  <span class="radio-hint">Dépôt ou ouverture de l'app Wave</span>
+                  <span class="radio-hint">Page Wave officielle ou dépôt mobile</span>
                 </label>
                 <label class="radio-card radio-card--later">
                   <input type="radio" name="pagnePaiement" value="plus_tard">
@@ -260,7 +260,8 @@
                 </label>
               </div>
               <div class="wave-preview" id="wave-preview" hidden>
-                <p class="wave-preview-label">Numéro Wave / Orange Money pour dépôt :</p>
+                <p class="wave-link-hint" id="wave-link-hint" hidden></p>
+                <p class="wave-preview-label">Numéro Wave / Orange Money (dépôt manuel) :</p>
                 <p class="wave-phone" id="wave-phone-display">—</p>
                 <button type="button" class="btn-wave-copy" id="btn-copy-wave">Copier le numéro</button>
               </div>
@@ -295,8 +296,8 @@
         <p id="success-message">Votre réponse a bien été enregistrée.</p>
         <div class="success-wave" id="success-wave" hidden>
           <p class="success-wave-amount" id="success-wave-amount"></p>
-          <button type="button" class="btn-wave-pay" id="btn-open-wave">Ouvrir Wave pour payer</button>
-          <p class="success-wave-hint">Vous pouvez aussi faire un dépôt Orange Money ou Wave au numéro ci-dessous. Indiquez votre nom en référence du paiement.</p>
+          <button type="button" class="btn-wave-pay" id="btn-open-wave">Ouvrir la page Wave pour payer</button>
+          <p class="success-wave-hint">La page Wave s'ouvrira avec le montant de votre commande. Indiquez votre nom en référence. Vous pouvez aussi faire un dépôt Orange Money au numéro ci-dessous.</p>
           <p class="wave-phone success-wave-phone" id="success-wave-phone"></p>
           <button type="button" class="btn-wave-copy" id="btn-copy-wave-success">Copier le numéro Wave</button>
         </div>

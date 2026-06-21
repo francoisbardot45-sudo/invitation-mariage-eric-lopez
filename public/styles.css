@@ -908,6 +908,14 @@ body {
   text-align: center;
 }
 
+.wave-link-hint {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #004aad;
+  margin-bottom: 0.5rem;
+}
+
 .wave-preview-label {
   font-size: 0.75rem;
   color: var(--text-muted);

@@ -18,7 +18,7 @@ let siteConfig = {
   pagnePrice: 2500,
   wavePhone: '07 08 02 06 26',
   wavePhoneDial: '+2250708020626',
-  wavePaymentLink: '',
+  wavePaymentLink: 'https://pay.wave.com/m/M_ci_WtvUpAxwnlbs/c/ci/',
   waveMerchantName: 'Eric & Lopez',
 };
 
@@ -108,7 +108,17 @@ function updatePagneUI() {
 function updateWavePreview() {
   const waveSelected = form.querySelector('input[name="pagnePaiement"][value="wave"]')?.checked;
   const qty = parseInt(pagneQuantite.value, 10) || 0;
-  wavePreview.hidden = !waveSelected || qty === 0 || !siteConfig.wavePhone;
+  const total = qty * siteConfig.pagnePrice;
+  const hasPay = siteConfig.wavePaymentLink || siteConfig.wavePhone;
+  wavePreview.hidden = !waveSelected || qty === 0 || !hasPay;
+
+  const linkHint = document.getElementById('wave-link-hint');
+  if (linkHint) {
+    linkHint.hidden = !siteConfig.wavePaymentLink || !waveSelected || qty === 0;
+    if (!linkHint.hidden) {
+      linkHint.textContent = `Page Wave avec montant : ${total.toLocaleString('fr-FR')} FCFA`;
+    }
+  }
 }
 
 function togglePresencePanels() {
@@ -132,7 +142,7 @@ document.querySelectorAll('input[name="pagnePaiement"]').forEach((radio) => {
 
 function buildWaveUrl(amount) {
   if (siteConfig.wavePaymentLink) {
-    const base = siteConfig.wavePaymentLink.trim();
+    const base = siteConfig.wavePaymentLink.trim().replace(/\?amount=\d*$/, '');
     const sep = base.includes('?') ? '&' : '?';
     return `${base}${sep}amount=${amount}`;
   }
@@ -144,10 +154,10 @@ function buildWaveUrl(amount) {
 function openWavePayment(amount) {
   const url = buildWaveUrl(amount);
   if (!url) {
-    alert('Numéro Wave non configuré. Utilisez le dépôt manuel avec le numéro affiché.');
+    alert('Paiement Wave non configuré. Utilisez le dépôt manuel avec le numéro affiché.');
     return;
   }
-  window.location.href = url;
+  window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 async function copyWavePhone(btn) {

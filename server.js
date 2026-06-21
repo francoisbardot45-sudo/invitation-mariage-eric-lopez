@@ -19,6 +19,8 @@ const ADMIN_PATH = process.env.ADMIN_PATH || 'gestion-eric-lopez-2026';
 
 const WAVE_PHONE = process.env.WAVE_PHONE || '+2250708020626';
 const WAVE_PHONE_DISPLAY = process.env.WAVE_PHONE_DISPLAY || '07 08 02 06 26';
+const WAVE_PAYMENT_LINK =
+  process.env.WAVE_PAYMENT_LINK || 'https://pay.wave.com/m/M_ci_WtvUpAxwnlbs/c/ci/';
 
 const ADMIN_TOKEN = crypto.createHmac('sha256', ADMIN_SECRET).update('admin-session').digest('hex');
 const ADMIN_DIR = path.join(__dirname, 'admin');
@@ -254,7 +256,7 @@ app.get('/api/config', (_req, res) => {
     pagnePrice: PAGNE_PRICE,
     wavePhone: WAVE_PHONE_DISPLAY,
     wavePhoneDial: WAVE_PHONE,
-    wavePaymentLink: process.env.WAVE_PAYMENT_LINK || '',
+    wavePaymentLink: WAVE_PAYMENT_LINK,
     waveMerchantName: process.env.WAVE_MERCHANT_NAME || 'Eric & Lopez',
   });
 });
