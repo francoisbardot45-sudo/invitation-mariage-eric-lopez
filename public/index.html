@@ -47,49 +47,46 @@
 
     <section class="details reveal">
       <div class="event-banner">
-        <article class="event-item">
-          <div class="event-icon event-icon--date" aria-hidden="true">
-            <span class="cal-day">15</span>
-            <span class="cal-month">Août</span>
-            <span class="cal-year">2026</span>
+        <div class="event-date-head">
+          <span class="event-date-day">15</span>
+          <div class="event-date-text">
+            <span class="event-date-week">Samedi</span>
+            <span class="event-date-full">15 août 2026</span>
           </div>
-          <div class="event-body">
-            <span class="event-tag">Date</span>
-            <p class="event-main">Samedi</p>
-            <p class="event-sub">15 août 2026</p>
-          </div>
-        </article>
+        </div>
 
-        <div class="event-divider" aria-hidden="true"><span>✦</span></div>
+        <div class="programme">
+          <article class="programme-step" style="--step-delay: 0s">
+            <div class="programme-marker programme-marker--mariage" aria-hidden="true">
+              <span>💒</span>
+            </div>
+            <div class="programme-content">
+              <div class="programme-head">
+                <span class="programme-label">Mariage</span>
+                <span class="programme-hour">11H00</span>
+              </div>
+              <p class="programme-venue">Foyer des jeunes de Marcory</p>
+            </div>
+          </article>
 
-        <article class="event-item">
-          <div class="event-icon event-icon--place" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/>
-              <circle cx="12" cy="10" r="2.5"/>
-            </svg>
+          <div class="programme-connector" aria-hidden="true">
+            <span class="connector-line"></span>
+            <span class="connector-arrow">↓</span>
           </div>
-          <div class="event-body">
-            <span class="event-tag">Réception</span>
-            <p class="event-main">Chefferie</p>
-            <p class="event-sub">d'Anoumabo</p>
-          </div>
-        </article>
 
-        <div class="event-divider" aria-hidden="true"><span>✦</span></div>
-
-        <article class="event-item">
-          <div class="event-icon event-icon--time" aria-hidden="true">
-            <span class="clock-hour">13</span>
-            <span class="clock-sep">:</span>
-            <span class="clock-min">00</span>
-          </div>
-          <div class="event-body">
-            <span class="event-tag">Heure</span>
-            <p class="event-main">13H00</p>
-            <p class="event-sub">Accueil des invités</p>
-          </div>
-        </article>
+          <article class="programme-step" style="--step-delay: 0.15s">
+            <div class="programme-marker programme-marker--reception" aria-hidden="true">
+              <span>🥂</span>
+            </div>
+            <div class="programme-content">
+              <div class="programme-head">
+                <span class="programme-label">Réception</span>
+                <span class="programme-hour">13H00</span>
+              </div>
+              <p class="programme-venue">Chefferie d'Anoumabo</p>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -184,30 +181,32 @@
               <span class="section-icon">🥂</span>
               <span>Votre accompagnement</span>
             </div>
-            <div class="field-row">
-              <div class="field field--elegant">
-                <label for="nombreAdultes">Adultes (vous inclus)</label>
+            <div class="guests-grid">
+              <div class="guests-field">
+                <label for="nombreAdultes">Adultes</label>
+                <span class="guests-hint">Vous inclus</span>
                 <div class="select-wrap">
                   <select id="nombreAdultes" name="nombreAdultes">
-                    <option value="1">1 adulte</option>
-                    <option value="2">2 adultes</option>
-                    <option value="3">3 adultes</option>
-                    <option value="4">4 adultes</option>
-                    <option value="5">5 adultes</option>
-                    <option value="6">6 adultes</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
                   </select>
                 </div>
               </div>
-              <div class="field field--elegant">
+              <div class="guests-field">
                 <label for="nombreEnfants">Enfants</label>
+                <span class="guests-hint">&nbsp;</span>
                 <div class="select-wrap">
                   <select id="nombreEnfants" name="nombreEnfants">
-                    <option value="0">0 enfant</option>
-                    <option value="1">1 enfant</option>
-                    <option value="2">2 enfants</option>
-                    <option value="3">3 enfants</option>
-                    <option value="4">4 enfants</option>
-                    <option value="5">5 enfants</option>
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
                   </select>
                 </div>
               </div>
