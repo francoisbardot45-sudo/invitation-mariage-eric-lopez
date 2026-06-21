@@ -342,6 +342,82 @@ body {
 
 .tag--pagne-declared { background: rgba(255, 152, 0, 0.12); color: #e65100; border-color: rgba(255, 152, 0, 0.25); }
 
+.tag--pagne-refused { background: rgba(198, 40, 40, 0.08); color: #c62828; border-color: rgba(198, 40, 40, 0.2); }
+
+.pagne-admin-thanks {
+  margin-top: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green);
+  background: rgba(46, 125, 50, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.pagne-admin-declared {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 152, 0, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+.pagne-admin-declared-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e65100;
+  margin-bottom: 0.5rem;
+}
+
+.pagne-admin-alert {
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(198, 40, 40, 0.06);
+  border-radius: 10px;
+  border: 1px solid rgba(198, 40, 40, 0.2);
+}
+
+.pagne-admin-alert-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #c62828;
+  margin-bottom: 0.4rem;
+}
+
+.btn-call-guest {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c62828;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+}
+
+.pagne-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.5rem;
+}
+
+.btn-mark-unpaid {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid rgba(198, 40, 40, 0.35);
+  border-radius: 999px;
+  background: rgba(198, 40, 40, 0.08);
+  color: #c62828;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-mark-unpaid:hover:not(:disabled) {
+  background: rgba(198, 40, 40, 0.15);
+}
+
 .btn-mark-paid--urgent {
   background: rgba(255, 152, 0, 0.15);
   border-color: rgba(255, 152, 0, 0.45);

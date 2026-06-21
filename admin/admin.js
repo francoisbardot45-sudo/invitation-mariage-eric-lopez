@@ -78,13 +78,52 @@ function guestCount(r) {
 function pagneLabel(status) {
   const map = {
     aucun: '',
-    commande: 'En attente de paiement',
-    declare_paye: 'Paiement déclaré — à valider',
-    paye: 'Payé ✓',
-    wave: 'En attente de paiement',
-    plus_tard: 'En attente de paiement',
+    commande: 'Paiement en attente',
+    declare_paye: 'Invité a confirmé le paiement',
+    paye: 'Payé — remercié ✓',
+    non_recu: 'Non reçu — à rappeler',
+    wave: 'Paiement en attente',
+    plus_tard: 'Paiement en attente',
   };
   return map[status] || status;
+}
+
+function renderPagneAdmin(r) {
+  const qty = r.pagneQuantite ?? 0;
+  if (qty === 0) return '';
+
+  if (r.pagnePaiement === 'paye') {
+    return `<p class="pagne-admin-thanks">💐 Paiement reçu — remerciements confirmés</p>`;
+  }
+
+  if (r.pagnePaiement === 'non_recu') {
+    const tel = (r.telephone || '').replace(/\s/g, '');
+    return `
+      <div class="pagne-admin-alert">
+        <p class="pagne-admin-alert-title">📞 Paiement non reçu — appelez l'invité</p>
+        <a href="tel:${tel}" class="btn-call-guest">${escapeHtml(r.telephone || '')}</a>
+        <div class="pagne-admin-actions">
+          <button type="button" class="btn-mark-paid" data-id="${r.id}" data-action="paye">Finalement reçu — valider</button>
+        </div>
+      </div>`;
+  }
+
+  if (r.pagnePaiement === 'declare_paye') {
+    return `
+      <div class="pagne-admin-declared">
+        <p class="pagne-admin-declared-title">💳 L'invité a confirmé son paiement</p>
+        <div class="pagne-admin-actions">
+          <button type="button" class="btn-mark-paid btn-mark-paid--urgent" data-id="${r.id}" data-action="paye">✓ Paiement reçu — remercier</button>
+          <button type="button" class="btn-mark-unpaid" data-id="${r.id}" data-action="non_recu">✗ Non reçu — rappeler</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="pagne-admin-actions">
+      <button type="button" class="btn-mark-paid" data-id="${r.id}" data-action="paye">Marquer comme payé</button>
+      <button type="button" class="btn-mark-unpaid" data-id="${r.id}" data-action="non_recu">Paiement non reçu</button>
+    </div>`;
 }
 
 function getFiltered() {
@@ -108,10 +147,9 @@ function pagneStats() {
   const totalFcfa = withPagne.reduce((s, r) => s + (r.pagneTotal ?? 0), 0);
   const payes = withPagne.filter((r) => r.pagnePaiement === 'paye');
   const aValider = withPagne.filter((r) => r.pagnePaiement === 'declare_paye');
-  const enAttente = withPagne.filter(
-    (r) => !['paye', 'aucun'].includes(r.pagnePaiement || '')
-  );
-  return { withPagne, totalPagnes, totalFcfa, payes: payes.length, aValider: aValider.length, enAttente: enAttente.length };
+  const nonRecus = withPagne.filter((r) => r.pagnePaiement === 'non_recu');
+  const enAttente = withPagne.filter((r) => ['commande', 'declare_paye', 'non_recu', 'wave', 'plus_tard'].includes(r.pagnePaiement || ''));
+  return { withPagne, totalPagnes, totalFcfa, payes: payes.length, aValider: aValider.length, nonRecus: nonRecus.length, enAttente: enAttente.length };
 }
 
 function renderAll() {
@@ -129,8 +167,8 @@ function renderAll() {
     <div class="stat-card purple"><strong>${totalEnfants}</strong><span>Enfants</span></div>
     <div class="stat-card blue"><strong>${ps.totalPagnes}</strong><span>Pagnes commandés</span></div>
     <div class="stat-card wave"><strong>${ps.totalFcfa.toLocaleString('fr-FR')}</strong><span>FCFA (pagnes)</span></div>
-    <div class="stat-card orange"><strong>${ps.aValider}</strong><span>À valider (déclarés)</span></div>
-    <div class="stat-card red"><strong>${ps.enAttente}</strong><span>Paiements en cours</span></div>
+    <div class="stat-card orange"><strong>${ps.aValider}</strong><span>Confirmations à valider</span></div>
+    <div class="stat-card red"><strong>${ps.nonRecus}</strong><span>À rappeler</span></div>
   `;
 
   document.getElementById('count-all').textContent = rsvps.length;
@@ -152,7 +190,8 @@ function renderGuestTags(r) {
     const status = r.pagnePaiement || 'commande';
     const statusClass =
       status === 'paye' ? 'tag--pagne-paid' :
-      status === 'declare_paye' ? 'tag--pagne-declared' : 'tag--pagne-pending';
+      status === 'declare_paye' ? 'tag--pagne-declared' :
+      status === 'non_recu' ? 'tag--pagne-refused' : 'tag--pagne-pending';
     html += `<span class="tag tag--pagne ${statusClass}">🧵 ${qty} pagne(s) — ${(r.pagneTotal ?? 0).toLocaleString('fr-FR')} FCFA</span>`;
     html += `<span class="tag ${statusClass}">${pagneLabel(status)}</span>`;
   }
@@ -194,11 +233,7 @@ function renderList() {
           <span class="tag tag--date">📅 ${new Date(r.dateReponse).toLocaleString('fr-FR')}</span>
         </div>
         ${r.message ? `<blockquote class="guest-message">"${escapeHtml(r.message)}"</blockquote>` : ''}
-        ${(r.pagneQuantite ?? 0) > 0 && r.pagnePaiement !== 'paye' ? `
-          <button type="button" class="btn-mark-paid ${r.pagnePaiement === 'declare_paye' ? 'btn-mark-paid--urgent' : ''}" data-id="${r.id}">
-            ${r.pagnePaiement === 'declare_paye' ? '✓ Valider le paiement reçu' : 'Marquer comme payé'}
-          </button>
-        ` : ''}
+        ${renderPagneAdmin(r)}
       </div>
       <button type="button" class="btn-delete" data-id="${r.id}" title="Supprimer">🗑</button>
     </article>
@@ -339,22 +374,27 @@ async function confirmDelete() {
 }
 
 document.getElementById('guest-list').addEventListener('click', async (e) => {
-  const paidBtn = e.target.closest('.btn-mark-paid');
-  if (paidBtn) {
-    const id = paidBtn.dataset.id;
-    paidBtn.disabled = true;
+  const actionBtn = e.target.closest('[data-action]');
+  if (actionBtn) {
+    const id = actionBtn.dataset.id;
+    const action = actionBtn.dataset.action;
+    actionBtn.disabled = true;
     const res = await fetch(`/api/rsvp/${id}/pagne`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pagnePaiement: 'paye' }),
+      body: JSON.stringify({ pagnePaiement: action }),
     });
     if (res.ok) {
       const guest = rsvps.find((r) => r.id === id);
-      if (guest) guest.pagnePaiement = 'paye';
+      if (guest) guest.pagnePaiement = action;
       renderAll();
-      showToast('Pagne marqué comme payé.', 'success');
+      const msg =
+        action === 'paye'
+          ? 'Paiement validé — remerciements confirmés.'
+          : 'Marqué comme non reçu — pensez à rappeler l\'invité.';
+      showToast(msg, action === 'paye' ? 'success' : 'info');
     } else {
-      paidBtn.disabled = false;
+      actionBtn.disabled = false;
       showToast('Erreur lors de la mise à jour.', 'error');
     }
     return;

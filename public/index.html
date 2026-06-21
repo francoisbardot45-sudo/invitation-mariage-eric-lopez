@@ -279,12 +279,16 @@
         <p id="success-message">Votre réponse a bien été enregistrée.</p>
         <div class="success-pagne" id="success-pagne" hidden>
           <p class="success-pagne-amount" id="success-pagne-amount"></p>
-          <p class="success-pagne-label">Numéro Wave / Orange Money :</p>
-          <p class="wave-phone success-pagne-phone" id="success-pagne-phone"></p>
-          <button type="button" class="btn-wave-copy" id="btn-copy-phone-success">Copier le numéro</button>
-          <p class="success-pagne-hint">Après votre dépôt, cliquez ci-dessous pour nous prévenir.</p>
-          <button type="button" class="btn-declare-paid" id="btn-declare-paid">Paiement effectué</button>
-          <p class="success-pagne-done" id="success-pagne-done" hidden></p>
+          <div id="success-pagne-pay-block">
+            <p class="success-pagne-label">Numéro Wave / Orange Money :</p>
+            <p class="wave-phone success-pagne-phone" id="success-pagne-phone"></p>
+            <button type="button" class="btn-wave-copy" id="btn-copy-phone-success">Copier le numéro</button>
+            <p class="success-pagne-hint">Une fois le dépôt effectué, merci de nous en informer :</p>
+            <button type="button" class="btn-declare-paid" id="btn-declare-paid">J'ai effectué le paiement</button>
+          </div>
+          <div class="success-thankyou" id="success-thankyou" hidden>
+            <p class="success-thankyou-text" id="success-thankyou-text"></p>
+          </div>
         </div>
       </div>
       </div>

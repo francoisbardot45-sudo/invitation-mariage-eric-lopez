@@ -96,6 +96,52 @@ function buildEntry(
   };
 }
 
+function buildGuestReturnMessage(entry) {
+  const p = entry.prenom;
+  const date = new Date(entry.dateReponse).toLocaleDateString('fr-FR');
+  const qty = entry.pagneQuantite ?? 0;
+
+  if (qty === 0) {
+    return {
+      title: 'Déjà inscrit(e)',
+      message: `Bonjour ${p} ! Votre présence est confirmée depuis le ${date}. Nous avons hâte de vous accueillir le 15 août 2026. Eric & Lopez 💍`,
+      icon: '✓',
+    };
+  }
+
+  const total = (entry.pagneTotal ?? 0).toLocaleString('fr-FR');
+  const status = entry.pagnePaiement;
+
+  if (status === 'paye') {
+    return {
+      title: 'Merci du fond du cœur',
+      message: `Bonjour ${p} ! Votre présence et le règlement de ${qty} pagne(s) (${total} FCFA) sont bien enregistrés. Merci infiniment pour votre générosité — au plaisir de vous retrouver le 15 août 2026. Eric & Lopez 💐`,
+      icon: '💐',
+    };
+  }
+  if (status === 'declare_paye') {
+    return {
+      title: 'Merci du fond du cœur',
+      message: `Bonjour ${p} ! Votre présence est confirmée et nous avons bien reçu votre confirmation de paiement pour ${qty} pagne(s). Merci infiniment. Eric & Lopez 💐`,
+      icon: '💐',
+    };
+  }
+  if (status === 'non_recu') {
+    return {
+      title: 'Paiement à régulariser',
+      message: `Bonjour ${p}, nous n'avons pas encore reçu votre paiement pour ${qty} pagne(s) (${total} FCFA). Merci de nous contacter au ${WAVE_PHONE_DISPLAY} ou de refaire votre dépôt en indiquant votre nom.`,
+      icon: '📞',
+      showPagne: true,
+    };
+  }
+  return {
+    title: 'Déjà inscrit(e)',
+    message: `Bonjour ${p} ! Votre présence est confirmée depuis le ${date}. Il reste le règlement de ${qty} pagne(s) (${total} FCFA) si ce n'est pas encore fait.`,
+    icon: '✓',
+    showPagne: true,
+  };
+}
+
 function validateRsvpInput({ prenom, nom, telephone, presence }) {
   if (!prenom?.trim() || !nom?.trim()) {
     return 'Le prénom et le nom sont obligatoires.';
@@ -144,18 +190,34 @@ app.post('/api/rsvp', async (req, res) => {
     const duplicate = findDuplicate(rsvps, req.body.nom, req.body.prenom, req.body.telephone);
 
     if (duplicate) {
+      const info = buildGuestReturnMessage(duplicate);
       return res.status(409).json({
         duplicate: true,
-        error: `Bonjour ${duplicate.prenom}, vous êtes déjà inscrit(e) ! Votre présence a bien été enregistrée le ${new Date(duplicate.dateReponse).toLocaleDateString('fr-FR')}.`,
+        error: info.message,
+        title: info.title,
+        icon: info.icon,
+        showPagne: info.showPagne ?? false,
+        id: duplicate.id,
+        telephone: duplicate.telephone,
+        pagne:
+          (duplicate.pagneQuantite ?? 0) > 0
+            ? {
+                quantite: duplicate.pagneQuantite,
+                total: duplicate.pagneTotal,
+                paiement: duplicate.pagnePaiement,
+              }
+            : null,
       });
     }
 
     const entry = buildEntry(req.body);
     await insertRsvp(entry);
 
-    let message = 'Merci ! Votre réponse a bien été enregistrée.';
+    let message =
+      'Votre présence nous fait chaleureusement plaisir. Nous avons hâte de vous retrouver le 15 août 2026. Eric & Lopez 💍';
     if (entry.pagneQuantite > 0) {
-      message = `Merci ! Votre commande de ${entry.pagneQuantite} pagne(s) est enregistrée. Effectuez le paiement puis cliquez sur « Paiement effectué ».`;
+      message =
+        'Merci du fond du cœur ! Votre commande de pagnes est enregistrée. Vous trouverez le numéro de paiement ci-dessous.';
     }
 
     res.json({
@@ -190,12 +252,19 @@ app.post('/api/rsvp/:id/declare-paiement', async (req, res) => {
       return res.status(400).json({ error: 'Aucune commande de pagne.' });
     }
     if (entry.pagnePaiement === 'paye') {
-      return res.json({ success: true, message: 'Votre paiement est déjà validé. Merci !' });
+      return res.json({
+        success: true,
+        already: true,
+        message:
+          'Votre paiement est déjà enregistré. Merci infiniment pour votre générosité. Eric & Lopez 💐',
+      });
     }
     if (entry.pagnePaiement === 'declare_paye') {
       return res.json({
         success: true,
-        message: 'Nous avons bien reçu votre confirmation. Nous vérifions le paiement.',
+        already: true,
+        message:
+          'Nous avons déjà bien reçu votre confirmation. Merci du fond du cœur. Eric & Lopez 💐',
       });
     }
 
@@ -206,7 +275,8 @@ app.post('/api/rsvp/:id/declare-paiement', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Merci ! Nous vérifierons votre paiement et vous confirmerons rapidement.',
+      message:
+        'Merci infiniment ! Votre confirmation nous est bien parvenue. Eric & Lopez vous remercient chaleureusement. 💐',
     });
   } catch (err) {
     handleError(res, err);
@@ -299,11 +369,14 @@ app.patch('/api/rsvp/:id/pagne', async (req, res) => {
   }
   try {
     const { pagnePaiement } = req.body;
-    const allowed = ['aucun', 'commande', 'declare_paye', 'paye', 'wave', 'plus_tard'];
+    const allowed = ['aucun', 'commande', 'declare_paye', 'paye', 'non_recu', 'wave', 'plus_tard'];
     if (!allowed.includes(pagnePaiement)) {
       return res.status(400).json({ error: 'Statut de paiement invalide.' });
     }
-    await updateRsvp(req.params.id, { pagnePaiement });
+    const fields = { pagnePaiement };
+    if (pagnePaiement === 'paye') fields.pagnePayeDate = new Date().toISOString();
+    if (pagnePaiement === 'non_recu') fields.pagneNonRecuDate = new Date().toISOString();
+    await updateRsvp(req.params.id, fields);
     res.json({ success: true });
   } catch (err) {
     handleError(res, err);

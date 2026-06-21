@@ -128,9 +128,20 @@ function initScrollHint() {
   hint.addEventListener('click', () => hint.classList.add('hidden'));
 }
 
-function showSuccessPagne(pagne) {
+function showThankYouCard(message) {
+  const thankYou = document.getElementById('success-thankyou');
+  const thankYouText = document.getElementById('success-thankyou-text');
+  const payBlock = document.getElementById('success-pagne-pay-block');
+
+  if (payBlock) payBlock.hidden = true;
+  thankYou.hidden = false;
+  thankYouText.textContent = message;
+}
+
+function setupDeclareButton(pagne, canDeclare) {
   const declareBtn = document.getElementById('btn-declare-paid');
-  const doneMsg = document.getElementById('success-pagne-done');
+  const thankYou = document.getElementById('success-thankyou');
+  const payBlock = document.getElementById('success-pagne-pay-block');
 
   if (!pagne) {
     successPagne.hidden = true;
@@ -142,14 +153,29 @@ function showSuccessPagne(pagne) {
     `${pagne.quantite} pagne(s) — ${pagne.total.toLocaleString('fr-FR')} FCFA`;
   document.getElementById('success-pagne-phone').textContent = siteConfig.wavePhone || '';
 
-  declareBtn.hidden = false;
+  const alreadyDone = ['declare_paye', 'paye'].includes(pagne.paiement);
+  if (alreadyDone) {
+    if (payBlock) payBlock.hidden = true;
+    thankYou.hidden = false;
+    document.getElementById('success-thankyou-text').textContent =
+      pagne.paiement === 'paye'
+        ? 'Merci infiniment pour votre générosité. Eric & Lopez 💐'
+        : 'Merci infiniment ! Eric & Lopez vous remercient chaleureusement. 💐';
+    return;
+  }
+
+  if (payBlock) payBlock.hidden = false;
+  thankYou.hidden = true;
+  declareBtn.hidden = !canDeclare;
   declareBtn.disabled = false;
-  doneMsg.hidden = true;
+  declareBtn.textContent = "J'ai effectué le paiement";
+
+  if (!canDeclare) return;
 
   declareBtn.onclick = async () => {
     if (!lastRsvp?.id) return;
     declareBtn.disabled = true;
-    declareBtn.textContent = 'Envoi...';
+    declareBtn.textContent = 'Un instant...';
     try {
       const res = await fetch(`/api/rsvp/${lastRsvp.id}/declare-paiement`, {
         method: 'POST',
@@ -158,15 +184,32 @@ function showSuccessPagne(pagne) {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erreur');
-      declareBtn.hidden = true;
-      doneMsg.hidden = false;
-      doneMsg.textContent = result.message;
+      showThankYouCard(result.message);
     } catch (err) {
       declareBtn.disabled = false;
-      declareBtn.textContent = 'Paiement effectué';
+      declareBtn.textContent = "J'ai effectué le paiement";
       alert(err.message);
     }
   };
+}
+
+function showSuccessScreen({ title, message, icon, pagne, id, telephone, showPagne }) {
+  form.hidden = true;
+  document.querySelector('.rsvp-header').hidden = true;
+  document.getElementById('success-icon').textContent = icon || '💍';
+  document.getElementById('success-title').textContent = title || 'Merci du fond du cœur';
+  document.getElementById('success-message').textContent = message;
+  successEl.hidden = false;
+
+  if (pagne && showPagne !== false && !['paye', 'declare_paye'].includes(pagne.paiement)) {
+    lastRsvp = { id, telephone };
+    setupDeclareButton(pagne, true);
+  } else if (pagne && ['paye', 'declare_paye'].includes(pagne.paiement)) {
+    lastRsvp = { id, telephone };
+    setupDeclareButton(pagne, false);
+  } else {
+    successPagne.hidden = true;
+  }
 }
 
 form.addEventListener('submit', async (e) => {
@@ -197,29 +240,33 @@ form.addEventListener('submit', async (e) => {
     const result = await res.json();
 
     if (res.status === 409 && result.duplicate) {
-      form.hidden = true;
-      document.querySelector('.rsvp-header').hidden = true;
-      document.getElementById('success-icon').textContent = '✓';
-      document.getElementById('success-title').textContent = 'Déjà inscrit(e)';
-      document.getElementById('success-message').textContent = result.error;
-      successPagne.hidden = true;
+      lastRsvp = { id: result.id, telephone: result.telephone };
       successEl.classList.add('success--duplicate');
-      successEl.hidden = false;
+      showSuccessScreen({
+        title: result.title,
+        message: result.error,
+        icon: result.icon,
+        pagne: result.pagne,
+        id: result.id,
+        telephone: result.telephone,
+        showPagne: result.showPagne,
+      });
       return;
     }
 
     if (!res.ok) throw new Error(result.error || 'Une erreur est survenue.');
 
     lastRsvp = { id: result.id, telephone: result.telephone || data.telephone };
-
-    form.hidden = true;
-    document.querySelector('.rsvp-header').hidden = true;
-    document.getElementById('success-icon').textContent = '💍';
-    document.getElementById('success-title').textContent = 'Merci du fond du cœur';
-    document.getElementById('success-message').textContent = result.message;
-    showSuccessPagne(result.pagne);
     successEl.classList.remove('success--duplicate');
-    successEl.hidden = false;
+    showSuccessScreen({
+      title: 'Merci du fond du cœur',
+      message: result.message,
+      icon: '💍',
+      pagne: result.pagne,
+      id: result.id,
+      telephone: lastRsvp.telephone,
+      showPagne: true,
+    });
   } catch (err) {
     const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';
     formError.textContent = isNetworkError
