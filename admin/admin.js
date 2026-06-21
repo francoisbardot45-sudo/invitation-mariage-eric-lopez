@@ -75,9 +75,24 @@ function guestCount(r) {
   return { adultes, enfants, total: adultes + enfants };
 }
 
+function pagneLabel(status) {
+  const map = {
+    aucun: '',
+    wave: 'Wave en attente',
+    plus_tard: 'À payer plus tard',
+    paye: 'Payé ✓',
+  };
+  return map[status] || status;
+}
+
 function getFiltered() {
   return rsvps.filter((r) => {
-    const matchFilter = currentFilter === 'all' || r.presence === currentFilter;
+    let matchFilter = true;
+    if (currentFilter === 'pagne') {
+      matchFilter = (r.pagneQuantite ?? 0) > 0;
+    } else if (currentFilter !== 'all') {
+      matchFilter = r.presence === currentFilter;
+    }
     const q = searchQuery.toLowerCase();
     const name = fullName(r).toLowerCase();
     const tel = (r.telephone || '').toLowerCase();
@@ -85,11 +100,21 @@ function getFiltered() {
   });
 }
 
+function pagneStats() {
+  const withPagne = rsvps.filter((r) => (r.pagneQuantite ?? 0) > 0);
+  const totalPagnes = withPagne.reduce((s, r) => s + (r.pagneQuantite ?? 0), 0);
+  const totalFcfa = withPagne.reduce((s, r) => s + (r.pagneTotal ?? 0), 0);
+  const payes = withPagne.filter((r) => r.pagnePaiement === 'paye');
+  const enAttente = withPagne.filter((r) => r.pagnePaiement !== 'paye' && r.pagnePaiement !== 'aucun');
+  return { withPagne, totalPagnes, totalFcfa, payes: payes.length, enAttente: enAttente.length };
+}
+
 function renderAll() {
   const oui = rsvps.filter((r) => r.presence === 'oui');
   const non = rsvps.filter((r) => r.presence === 'non');
   const totalAdultes = oui.reduce((s, r) => s + guestCount(r).adultes, 0);
   const totalEnfants = oui.reduce((s, r) => s + guestCount(r).enfants, 0);
+  const ps = pagneStats();
 
   document.getElementById('stats').innerHTML = `
     <div class="stat-card"><strong>${rsvps.length}</strong><span>Réponses</span></div>
@@ -97,19 +122,32 @@ function renderAll() {
     <div class="stat-card red"><strong>${non.length}</strong><span>Absents</span></div>
     <div class="stat-card gold"><strong>${totalAdultes + totalEnfants}</strong><span>Total invités</span></div>
     <div class="stat-card purple"><strong>${totalEnfants}</strong><span>Enfants</span></div>
+    <div class="stat-card blue"><strong>${ps.totalPagnes}</strong><span>Pagnes commandés</span></div>
+    <div class="stat-card wave"><strong>${ps.totalFcfa.toLocaleString('fr-FR')}</strong><span>FCFA (pagnes)</span></div>
+    <div class="stat-card orange"><strong>${ps.enAttente}</strong><span>Paiements en attente</span></div>
   `;
 
   document.getElementById('count-all').textContent = rsvps.length;
   document.getElementById('count-oui').textContent = oui.length;
   document.getElementById('count-non').textContent = non.length;
+  document.getElementById('count-pagne').textContent = ps.withPagne.length;
   renderList();
 }
 
 function renderGuestTags(r) {
-  if (r.presence !== 'oui') return '';
-  const { adultes, enfants } = guestCount(r);
-  let html = `<span class="tag tag--guests">👥 ${adultes} adulte(s)</span>`;
-  if (enfants > 0) html += `<span class="tag tag--kids">🧒 ${enfants} enfant(s)</span>`;
+  let html = '';
+  if (r.presence === 'oui') {
+    const { adultes, enfants } = guestCount(r);
+    html += `<span class="tag tag--guests">👥 ${adultes} adulte(s)</span>`;
+    if (enfants > 0) html += `<span class="tag tag--kids">🧒 ${enfants} enfant(s)</span>`;
+  }
+  const qty = r.pagneQuantite ?? 0;
+  if (qty > 0) {
+    const status = r.pagnePaiement || 'plus_tard';
+    const statusClass = status === 'paye' ? 'tag--pagne-paid' : 'tag--pagne-pending';
+    html += `<span class="tag tag--pagne ${statusClass}">🧵 ${qty} pagne(s) — ${(r.pagneTotal ?? 0).toLocaleString('fr-FR')} FCFA</span>`;
+    html += `<span class="tag ${statusClass}">${pagneLabel(status)}</span>`;
+  }
   return html;
 }
 
@@ -148,6 +186,9 @@ function renderList() {
           <span class="tag tag--date">📅 ${new Date(r.dateReponse).toLocaleString('fr-FR')}</span>
         </div>
         ${r.message ? `<blockquote class="guest-message">"${escapeHtml(r.message)}"</blockquote>` : ''}
+        ${(r.pagneQuantite ?? 0) > 0 && r.pagnePaiement !== 'paye' ? `
+          <button type="button" class="btn-mark-paid" data-id="${r.id}">Marquer pagne payé</button>
+        ` : ''}
       </div>
       <button type="button" class="btn-delete" data-id="${r.id}" title="Supprimer">🗑</button>
     </article>
@@ -287,7 +328,27 @@ async function confirmDelete() {
   showToast('Invité supprimé.', 'info');
 }
 
-document.getElementById('guest-list').addEventListener('click', (e) => {
+document.getElementById('guest-list').addEventListener('click', async (e) => {
+  const paidBtn = e.target.closest('.btn-mark-paid');
+  if (paidBtn) {
+    const id = paidBtn.dataset.id;
+    paidBtn.disabled = true;
+    const res = await fetch(`/api/rsvp/${id}/pagne`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pagnePaiement: 'paye' }),
+    });
+    if (res.ok) {
+      const guest = rsvps.find((r) => r.id === id);
+      if (guest) guest.pagnePaiement = 'paye';
+      renderAll();
+      showToast('Pagne marqué comme payé.', 'success');
+    } else {
+      paidBtn.disabled = false;
+      showToast('Erreur lors de la mise à jour.', 'error');
+    }
+    return;
+  }
   const btn = e.target.closest('.btn-delete');
   if (btn) openDeleteModal(btn.dataset.id);
 });
@@ -318,10 +379,14 @@ document.getElementById('search').addEventListener('input', (e) => {
 });
 
 document.getElementById('export-btn').addEventListener('click', () => {
-  const header = ['Nom complet', 'Nom', 'Prénom', 'Téléphone', 'Présence', 'Adultes', 'Enfants', 'Message', 'Date'];
+  const header = ['Nom complet', 'Nom', 'Prénom', 'Téléphone', 'Présence', 'Adultes', 'Enfants', 'Pagnes', 'Total pagne FCFA', 'Paiement pagne', 'Message', 'Date'];
   const lines = rsvps.map((r) => {
     const { adultes, enfants } = guestCount(r);
-    return [fullName(r), r.nom, r.prenom, r.telephone || '', r.presence, adultes, enfants, r.message, r.dateReponse]
+    return [
+      fullName(r), r.nom, r.prenom, r.telephone || '', r.presence, adultes, enfants,
+      r.pagneQuantite ?? 0, r.pagneTotal ?? 0, pagneLabel(r.pagnePaiement || 'aucun'),
+      r.message, r.dateReponse,
+    ]
       .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
   });
   const blob = new Blob(['\ufeff' + header.join(',') + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });

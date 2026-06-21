@@ -1,16 +1,51 @@
 const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const admin = require('firebase-admin');
 
 const DATA_FILE = path.join(__dirname, 'data', 'rsvp.json');
+const COLLECTION = 'rsvps';
+const PAGNE_PRICE = parseInt(process.env.PAGNE_PRICE || '2500', 10);
 
-const supabase =
-  process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
-    : null;
+let firestore = null;
+
+function initFirebase() {
+  if (firestore) return firestore;
+
+  const hasCert =
+    process.env.FIREBASE_PROJECT_ID &&
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    process.env.FIREBASE_PRIVATE_KEY;
+
+  if (!hasCert && process.env.NODE_ENV === 'production') {
+    console.error('⚠️  FIREBASE_CLIENT_EMAIL et FIREBASE_PRIVATE_KEY manquants — les données ne seront PAS sauvegardées.');
+    return null;
+  }
+
+  if (!admin.apps.length) {
+    if (hasCert) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+        }),
+      });
+    } else {
+      admin.initializeApp({
+        projectId: process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'invitation-mariage-eric-lopez',
+      });
+    }
+  }
+  firestore = admin.firestore();
+  return firestore;
+}
 
 function storageMode() {
-  return supabase ? 'supabase' : 'fichier';
+  try {
+    return initFirebase() ? 'firebase' : 'fichier';
+  } catch {
+    return 'fichier';
+  }
 }
 
 function migrateEntry(entry) {
@@ -27,36 +62,47 @@ function migrateEntry(entry) {
   if (entry.nombreEnfants === undefined) {
     entry.nombreEnfants = 0;
   }
+  if (entry.pagneQuantite === undefined) entry.pagneQuantite = 0;
+  if (entry.pagnePrixUnitaire === undefined) entry.pagnePrixUnitaire = PAGNE_PRICE;
+  if (entry.pagneTotal === undefined) entry.pagneTotal = entry.pagneQuantite * PAGNE_PRICE;
+  if (!entry.pagnePaiement) entry.pagnePaiement = 'aucun';
   return entry;
 }
 
-function rowToEntry(row) {
+function docToEntry(id, data) {
   return migrateEntry({
-    id: row.id,
-    prenom: row.prenom,
-    nom: row.nom,
-    nomComplet: row.nom_complet,
-    telephone: row.telephone,
-    presence: row.presence,
-    nombreAdultes: row.nombre_adultes,
-    nombreEnfants: row.nombre_enfants,
-    message: row.message || '',
-    dateReponse: row.date_reponse,
+    id,
+    prenom: data.prenom,
+    nom: data.nom,
+    nomComplet: data.nomComplet,
+    telephone: data.telephone,
+    presence: data.presence,
+    nombreAdultes: data.nombreAdultes,
+    nombreEnfants: data.nombreEnfants,
+    message: data.message || '',
+    dateReponse: data.dateReponse,
+    pagneQuantite: data.pagneQuantite ?? 0,
+    pagnePrixUnitaire: data.pagnePrixUnitaire ?? PAGNE_PRICE,
+    pagneTotal: data.pagneTotal ?? 0,
+    pagnePaiement: data.pagnePaiement ?? 'aucun',
   });
 }
 
-function entryToRow(entry) {
+function entryToDoc(entry) {
   return {
-    id: entry.id,
     prenom: entry.prenom,
     nom: entry.nom,
-    nom_complet: entry.nomComplet,
+    nomComplet: entry.nomComplet,
     telephone: entry.telephone,
     presence: entry.presence,
-    nombre_adultes: entry.nombreAdultes,
-    nombre_enfants: entry.nombreEnfants,
+    nombreAdultes: entry.nombreAdultes,
+    nombreEnfants: entry.nombreEnfants,
     message: entry.message || '',
-    date_reponse: entry.dateReponse,
+    dateReponse: entry.dateReponse,
+    pagneQuantite: entry.pagneQuantite ?? 0,
+    pagnePrixUnitaire: entry.pagnePrixUnitaire ?? PAGNE_PRICE,
+    pagneTotal: entry.pagneTotal ?? 0,
+    pagnePaiement: entry.pagnePaiement ?? 'aucun',
   };
 }
 
@@ -77,21 +123,18 @@ function writeRsvpsFile(rsvps) {
 }
 
 async function readRsvps() {
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('rsvp')
-      .select('*')
-      .order('date_reponse', { ascending: false });
-    if (error) throw error;
-    return (data || []).map(rowToEntry);
+  const db = initFirebase();
+  if (db) {
+    const snap = await db.collection(COLLECTION).orderBy('dateReponse', 'desc').get();
+    return snap.docs.map((doc) => docToEntry(doc.id, doc.data()));
   }
   return readRsvpsFile();
 }
 
 async function insertRsvp(entry) {
-  if (supabase) {
-    const { error } = await supabase.from('rsvp').insert(entryToRow(entry));
-    if (error) throw error;
+  const db = initFirebase();
+  if (db) {
+    await db.collection(COLLECTION).doc(entry.id).set(entryToDoc(entry));
     return;
   }
   const rsvps = readRsvpsFile();
@@ -100,12 +143,26 @@ async function insertRsvp(entry) {
 }
 
 async function deleteRsvp(id) {
-  if (supabase) {
-    const { error } = await supabase.from('rsvp').delete().eq('id', id);
-    if (error) throw error;
+  const db = initFirebase();
+  if (db) {
+    await db.collection(COLLECTION).doc(id).delete();
     return;
   }
   writeRsvpsFile(readRsvpsFile().filter((r) => r.id !== id));
+}
+
+async function updateRsvp(id, fields) {
+  const db = initFirebase();
+  if (db) {
+    await db.collection(COLLECTION).doc(id).update(fields);
+    return;
+  }
+  const rsvps = readRsvpsFile();
+  const idx = rsvps.findIndex((r) => r.id === id);
+  if (idx >= 0) {
+    rsvps[idx] = migrateEntry({ ...rsvps[idx], ...fields });
+    writeRsvpsFile(rsvps);
+  }
 }
 
 module.exports = {
@@ -114,4 +171,6 @@ module.exports = {
   readRsvps,
   insertRsvp,
   deleteRsvp,
+  updateRsvp,
+  PAGNE_PRICE,
 };

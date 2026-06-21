@@ -1,0 +1,44 @@
+CONFIGURATION FIREBASE — Projet : invitation-mariage-eric-lopez
+================================================================
+
+✅ Firestore est déjà créé et les règles sont déployées.
+Les RSVP seront stockés dans la collection « rsvps » — permanent, jamais effacé au redéploiement.
+
+ÉTAPE OBLIGATOIRE — Clé de service (pour Render ou local)
+---------------------------------------------------------
+1. Ouvrez :
+   https://console.firebase.google.com/project/invitation-mariage-eric-lopez/settings/serviceaccounts/adminsdk
+
+2. Cliquez « Générer une nouvelle clé privée » → téléchargez le fichier JSON.
+
+3. Sur Render (Environment), ajoutez :
+   - FIREBASE_PROJECT_ID = invitation-mariage-eric-lopez
+   - FIREBASE_CLIENT_EMAIL = (client_email du JSON)
+   - FIREBASE_PRIVATE_KEY = (private_key du JSON, avec les sauts de ligne)
+
+4. Redéployez Render. Au démarrage vous devez voir :
+   « Stockage : Firebase Firestore (permanent) »
+
+WAVE / PAGNE
+------------
+- WAVE_PHONE = +2250708020626
+- WAVE_PHONE_DISPLAY = 07 08 02 06 26
+- PAGNE_PRICE = 2500
+
+HÉBERGEMENT FIREBASE COMPLET (optionnel)
+----------------------------------------
+Pour héberger aussi l'API sur Firebase (sans Render), passez le projet
+en plan Blaze (gratuit tant que vous restez dans les quotas) :
+https://console.firebase.google.com/project/invitation-mariage-eric-lopez/usage/details
+
+Puis lancez : npm run deploy
+
+URL Render actuelle (si vous gardez Render) :
+https://invitation-mariage-eric-lopez.onrender.com
+
+IMPORTANT
+---------
+Sans FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY sur Render,
+les réponses continueront à disparaître à chaque redéploiement.
+
+Exportez le CSV depuis l'admin régulièrement comme sauvegarde.

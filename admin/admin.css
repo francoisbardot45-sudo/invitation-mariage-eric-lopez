@@ -170,6 +170,9 @@ body {
 .stat-card.red strong { color: var(--red); }
 .stat-card.gold strong { color: #b8944f; }
 .stat-card.purple strong { color: var(--purple-light); }
+.stat-card.blue strong { color: #1da1f2; }
+.stat-card.wave strong { color: #004aad; }
+.stat-card.orange strong { color: #e65100; }
 
 .toolbar-actions {
   display: flex;
@@ -314,7 +317,33 @@ body {
 
 .tag--guests { background: rgba(46, 125, 50, 0.08); color: var(--green); border-color: rgba(46, 125, 50, 0.15); }
 .tag--kids { background: rgba(92, 32, 104, 0.08); color: var(--purple); border-color: rgba(92, 32, 104, 0.12); }
+.tag--pagne { background: rgba(0, 74, 173, 0.08); color: #004aad; border-color: rgba(0, 74, 173, 0.15); }
+.tag--pagne-paid { background: rgba(46, 125, 50, 0.1); color: var(--green); border-color: rgba(46, 125, 50, 0.2); }
+.tag--pagne-pending { background: rgba(230, 81, 0, 0.08); color: #e65100; border-color: rgba(230, 81, 0, 0.15); }
 .tag--date { background: transparent; border: none; padding-left: 0; font-size: 0.7rem; }
+
+.btn-mark-paid {
+  margin-top: 0.65rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  font-weight: 600;
+  border: 1px solid rgba(46, 125, 50, 0.35);
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.08);
+  color: var(--green);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-mark-paid:hover:not(:disabled) {
+  background: rgba(46, 125, 50, 0.15);
+}
+
+.btn-mark-paid:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 .guest-message {
   margin: 0.65rem 0 0;

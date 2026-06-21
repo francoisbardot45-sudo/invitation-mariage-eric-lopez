@@ -2,13 +2,18 @@
   "name": "invitation-mariage",
   "version": "1.0.0",
   "description": "Carte d'invitation numérique avec RSVP",
-  "main": "server.js",
+  "main": "functions/index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "deploy": "firebase deploy"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.6.0"
   }
 }

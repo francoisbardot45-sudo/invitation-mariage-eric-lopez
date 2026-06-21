@@ -809,6 +809,185 @@ body {
   margin-bottom: 0.85rem;
 }
 
+/* ── Pagne panel ── */
+.pagne-panel {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(230,245,255,0.5));
+  border: 1px dashed rgba(29, 161, 242, 0.45);
+  border-radius: 16px;
+  padding: 1.1rem 1rem 1rem;
+  margin-bottom: 1.5rem;
+  animation: panelSlide 0.45s ease;
+}
+
+.pagne-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 0.5rem;
+}
+
+.pagne-price-tag {
+  margin-left: auto;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #1da1f2, #004aad);
+  color: #fff;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+}
+
+.pagne-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.85rem;
+}
+
+.pagne-qty-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.pagne-qty-row label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple-soft);
+}
+
+.pagne-total {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  color: var(--purple);
+  margin-bottom: 0.85rem;
+}
+
+.pagne-total strong {
+  color: #004aad;
+}
+
+.pagne-payment .label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple-soft);
+  margin-bottom: 0.5rem;
+}
+
+.radio-group--compact {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.radio-card--wave:has(input:checked) {
+  border-color: #1da1f2;
+}
+
+.radio-card--later:has(input:checked) {
+  border-color: var(--gold);
+}
+
+.wave-preview {
+  background: rgba(29, 161, 242, 0.08);
+  border: 1px solid rgba(29, 161, 242, 0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.wave-preview-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.wave-phone {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #004aad;
+  letter-spacing: 0.04em;
+}
+
+.btn-wave-copy {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.75rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  border: 1px solid rgba(29, 161, 242, 0.4);
+  border-radius: 999px;
+  background: #fff;
+  color: #004aad;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-wave-copy:hover {
+  background: rgba(29, 161, 242, 0.1);
+}
+
+.btn-wave-pay {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 1rem auto 0.5rem;
+  padding: 0.85rem 1.25rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #1da1f2, #004aad);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 74, 173, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-wave-pay:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 74, 173, 0.45);
+}
+
+.success-wave {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: rgba(29, 161, 242, 0.08);
+  border-radius: 14px;
+  border: 1px solid rgba(29, 161, 242, 0.2);
+}
+
+.success-wave-amount {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--purple);
+}
+
+.success-wave-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.success-wave-phone {
+  margin-top: 0.5rem;
+}
+
 .textarea-wrap {
   position: relative;
 }

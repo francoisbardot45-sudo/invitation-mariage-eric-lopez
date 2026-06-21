@@ -2,13 +2,16 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { storageMode, readRsvps, insertRsvp, deleteRsvp } = require('./db');
+const { storageMode, readRsvps, insertRsvp, deleteRsvp, updateRsvp, PAGNE_PRICE } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mariage2026';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'mariage-secret-2026';
 const ADMIN_PATH = process.env.ADMIN_PATH || 'gestion-eric-lopez-2026';
+
+const WAVE_PHONE = process.env.WAVE_PHONE || '+2250708020626';
+const WAVE_PHONE_DISPLAY = process.env.WAVE_PHONE_DISPLAY || '07 08 02 06 26';
 
 const ADMIN_TOKEN = crypto.createHmac('sha256', ADMIN_SECRET).update('admin-session').digest('hex');
 const ADMIN_DIR = path.join(__dirname, 'admin');
@@ -52,12 +55,25 @@ function findDuplicate(rsvps, nom, prenom, telephone) {
   });
 }
 
-function buildEntry({ prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message }, id) {
+function buildEntry(
+  { prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message, pagneQuantite, pagnePaiement },
+  id
+) {
   const prenomTrim = prenom.trim();
   const nomTrim = nom.trim();
   const adultesRaw = presence === 'oui' ? parseInt(nombreAdultes, 10) : 0;
   const adultes = presence === 'oui' ? (adultesRaw === 0 ? 1 : Math.max(1, adultesRaw || 1)) : 0;
   const enfants = presence === 'oui' ? Math.max(0, parseInt(nombreEnfants, 10) || 0) : 0;
+
+  let qty = 0;
+  let paiement = 'aucun';
+  if (presence === 'oui') {
+    qty = Math.max(0, Math.min(20, parseInt(pagneQuantite, 10) || 0));
+    if (qty > 0) {
+      const allowed = ['wave', 'plus_tard'];
+      paiement = allowed.includes(pagnePaiement) ? pagnePaiement : 'plus_tard';
+    }
+  }
 
   return {
     id: id || Date.now().toString(),
@@ -70,6 +86,10 @@ function buildEntry({ prenom, nom, telephone, presence, nombreAdultes, nombreEnf
     nombreEnfants: enfants,
     message: message?.trim() || '',
     dateReponse: new Date().toISOString(),
+    pagneQuantite: qty,
+    pagnePrixUnitaire: PAGNE_PRICE,
+    pagneTotal: qty * PAGNE_PRICE,
+    pagnePaiement: qty > 0 ? paiement : 'aucun',
   };
 }
 
@@ -129,7 +149,22 @@ app.post('/api/rsvp', async (req, res) => {
 
     const entry = buildEntry(req.body);
     await insertRsvp(entry);
-    res.json({ success: true, message: 'Merci ! Votre réponse a bien été enregistrée.' });
+
+    let message = 'Merci ! Votre réponse a bien été enregistrée.';
+    if (entry.pagneQuantite > 0) {
+      message =
+        entry.pagnePaiement === 'wave'
+          ? `Merci ! Votre réponse et votre commande de ${entry.pagneQuantite} pagne(s) sont enregistrées. Procédez au paiement Wave ci-dessous.`
+          : `Merci ! Votre réponse et votre commande de ${entry.pagneQuantite} pagne(s) sont enregistrées. Vous pourrez régler plus tard.`;
+    }
+
+    res.json({
+      success: true,
+      message,
+      pagne: entry.pagneQuantite > 0
+        ? { quantite: entry.pagneQuantite, total: entry.pagneTotal, paiement: entry.pagnePaiement }
+        : null,
+    });
   } catch (err) {
     handleError(res, err);
   }
@@ -179,6 +214,8 @@ app.post('/api/rsvp/import', async (req, res) => {
           nombreAdultes: raw.nombreAdultes ?? raw.adultes ?? 1,
           nombreEnfants: raw.nombreEnfants ?? raw.enfants ?? 0,
           message: raw.message || '',
+          pagneQuantite: raw.pagneQuantite ?? raw.pagne ?? 0,
+          pagnePaiement: raw.pagnePaiement || 'aucun',
         },
         `${Date.now()}-${index}`
       );
@@ -200,6 +237,33 @@ app.get('/api/rsvp', async (req, res) => {
   }
   try {
     res.json(await readRsvps());
+  } catch (err) {
+    handleError(res, err);
+  }
+});
+
+app.get('/api/config', (_req, res) => {
+  res.json({
+    pagnePrice: PAGNE_PRICE,
+    wavePhone: WAVE_PHONE_DISPLAY,
+    wavePhoneDial: WAVE_PHONE,
+    wavePaymentLink: process.env.WAVE_PAYMENT_LINK || '',
+    waveMerchantName: process.env.WAVE_MERCHANT_NAME || 'Eric & Lopez',
+  });
+});
+
+app.patch('/api/rsvp/:id/pagne', async (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(401).json({ error: 'Accès non autorisé.' });
+  }
+  try {
+    const { pagnePaiement } = req.body;
+    const allowed = ['aucun', 'wave', 'plus_tard', 'paye'];
+    if (!allowed.includes(pagnePaiement)) {
+      return res.status(400).json({ error: 'Statut de paiement invalide.' });
+    }
+    await updateRsvp(req.params.id, { pagnePaiement });
+    res.json({ success: true });
   } catch (err) {
     handleError(res, err);
   }
@@ -240,12 +304,16 @@ app.get('/admin.html', (_req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.listen(PORT, () => {
-  const mode = storageMode();
-  console.log(`\n💍 Invitation : http://localhost:${PORT}`);
-  console.log(`🔐 Espace admin : http://localhost:${PORT}/${ADMIN_PATH}`);
-  console.log(`📦 Stockage : ${mode === 'supabase' ? 'Supabase (permanent)' : 'fichier local (temporaire sur Render)'}`);
-  if (mode !== 'supabase') {
-    console.log('⚠️  Configurez SUPABASE_URL et SUPABASE_SERVICE_KEY sur Render pour ne plus perdre les données.\n');
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    const mode = storageMode();
+    console.log(`\n💍 Invitation : http://localhost:${PORT}`);
+    console.log(`🔐 Espace admin : http://localhost:${PORT}/${ADMIN_PATH}`);
+    console.log(`📦 Stockage : ${mode === 'firebase' ? 'Firebase Firestore (permanent)' : 'fichier local (temporaire — ne pas utiliser en production)'}`);
+    if (mode !== 'firebase') {
+      console.log('⚠️  Configurez Firebase ou lancez via Cloud Functions pour un stockage permanent.\n');
+    }
+  });
+}
+
+module.exports = app;

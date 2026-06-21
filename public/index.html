@@ -214,6 +214,59 @@
             </div>
           </div>
 
+          <div class="pagne-panel" id="pagne-field" hidden>
+            <div class="pagne-panel-header">
+              <span class="section-icon">🧵</span>
+              <span>Pagne de mariage</span>
+              <span class="pagne-price-tag" id="pagne-price-label">2 500 FCFA / pagne</span>
+            </div>
+            <p class="pagne-desc">Optionnel — réservé aux invités confirmés. Commandez vos pagnes ou passez cette étape.</p>
+
+            <div class="pagne-qty-row">
+              <label for="pagneQuantite">Nombre de pagnes</label>
+              <div class="select-wrap">
+                <select id="pagneQuantite" name="pagneQuantite">
+                  <option value="0">0 — Je ne prends pas de pagne</option>
+                  <option value="1">1 pagne</option>
+                  <option value="2">2 pagnes</option>
+                  <option value="3">3 pagnes</option>
+                  <option value="4">4 pagnes</option>
+                  <option value="5">5 pagnes</option>
+                  <option value="6">6 pagnes</option>
+                  <option value="7">7 pagnes</option>
+                  <option value="8">8 pagnes</option>
+                  <option value="9">9 pagnes</option>
+                  <option value="10">10 pagnes</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="pagne-total" id="pagne-total" hidden>Total : <strong>0 FCFA</strong></p>
+
+            <div class="pagne-payment" id="pagne-payment" hidden>
+              <span class="label">Mode de paiement</span>
+              <div class="radio-group radio-group--compact">
+                <label class="radio-card radio-card--wave">
+                  <input type="radio" name="pagnePaiement" value="wave">
+                  <span class="radio-icon">📱</span>
+                  <span class="radio-label">Payer avec Wave / Orange Money</span>
+                  <span class="radio-hint">Dépôt ou ouverture de l'app Wave</span>
+                </label>
+                <label class="radio-card radio-card--later">
+                  <input type="radio" name="pagnePaiement" value="plus_tard">
+                  <span class="radio-icon">⏳</span>
+                  <span class="radio-label">Je paierai plus tard</span>
+                  <span class="radio-hint">Commande enregistrée sans paiement</span>
+                </label>
+              </div>
+              <div class="wave-preview" id="wave-preview" hidden>
+                <p class="wave-preview-label">Numéro Wave / Orange Money pour dépôt :</p>
+                <p class="wave-phone" id="wave-phone-display">—</p>
+                <button type="button" class="btn-wave-copy" id="btn-copy-wave">Copier le numéro</button>
+              </div>
+            </div>
+          </div>
+
           <fieldset class="form-section form-section--message">
             <legend class="form-section-title">
               <span class="section-icon">✉️</span>
@@ -240,6 +293,13 @@
         <div class="success-ring" id="success-icon">💍</div>
         <h3 id="success-title">Merci du fond du cœur</h3>
         <p id="success-message">Votre réponse a bien été enregistrée.</p>
+        <div class="success-wave" id="success-wave" hidden>
+          <p class="success-wave-amount" id="success-wave-amount"></p>
+          <button type="button" class="btn-wave-pay" id="btn-open-wave">Ouvrir Wave pour payer</button>
+          <p class="success-wave-hint">Vous pouvez aussi faire un dépôt Orange Money ou Wave au numéro ci-dessous. Indiquez votre nom en référence du paiement.</p>
+          <p class="wave-phone success-wave-phone" id="success-wave-phone"></p>
+          <button type="button" class="btn-wave-copy" id="btn-copy-wave-success">Copier le numéro Wave</button>
+        </div>
       </div>
       </div>
     </section>
