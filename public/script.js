@@ -100,13 +100,27 @@ form.addEventListener('submit', async (e) => {
 
     const result = await res.json();
 
+    if (res.status === 409 && result.duplicate) {
+      form.hidden = true;
+      document.querySelector('.rsvp-header').hidden = true;
+      document.getElementById('success-icon').textContent = '✓';
+      document.getElementById('success-title').textContent = 'Déjà inscrit(e)';
+      document.getElementById('success-message').textContent = result.error;
+      successEl.classList.add('success--duplicate');
+      successEl.hidden = false;
+      return;
+    }
+
     if (!res.ok) {
       throw new Error(result.error || 'Une erreur est survenue.');
     }
 
     form.hidden = true;
     document.querySelector('.rsvp-header').hidden = true;
+    document.getElementById('success-icon').textContent = '💍';
+    document.getElementById('success-title').textContent = 'Merci du fond du cœur';
     document.getElementById('success-message').textContent = result.message;
+    successEl.classList.remove('success--duplicate');
     successEl.hidden = false;
   } catch (err) {
     const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';

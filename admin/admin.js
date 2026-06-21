@@ -11,32 +11,29 @@ const deleteModal = document.getElementById('delete-modal');
 const modalGuestName = document.getElementById('modal-guest-name');
 const modalConfirm = document.getElementById('modal-confirm');
 const modalCancel = document.getElementById('modal-cancel');
+const toastEl = document.getElementById('toast');
+const importFile = document.getElementById('import-file');
 
 async function checkAuth() {
   const res = await fetch('/api/admin/check');
   const data = await res.json();
-  if (data.authenticated) {
-    showDashboard();
-  }
+  if (data.authenticated) showDashboard();
 }
 
 loginForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   loginError.hidden = true;
-
   const res = await fetch('/api/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password: document.getElementById('password').value }),
   });
-
   if (!res.ok) {
     const data = await res.json();
     loginError.textContent = data.error || 'Erreur de connexion';
     loginError.hidden = false;
     return;
   }
-
   showDashboard();
 });
 
@@ -68,6 +65,10 @@ function fullName(r) {
   return r.nomComplet || `${r.nom} ${r.prenom}`;
 }
 
+function initials(r) {
+  return ((r.nom?.[0] || '') + (r.prenom?.[0] || '')).toUpperCase();
+}
+
 function guestCount(r) {
   const adultes = r.nombreAdultes ?? r.nombrePersonnes ?? 0;
   const enfants = r.nombreEnfants ?? 0;
@@ -80,8 +81,7 @@ function getFiltered() {
     const q = searchQuery.toLowerCase();
     const name = fullName(r).toLowerCase();
     const tel = (r.telephone || '').toLowerCase();
-    const matchSearch = !q || name.includes(q) || tel.includes(q);
-    return matchFilter && matchSearch;
+    return matchFilter && (!q || name.includes(q) || tel.includes(q));
   });
 }
 
@@ -96,22 +96,21 @@ function renderAll() {
     <div class="stat-card green"><strong>${oui.length}</strong><span>Confirmés</span></div>
     <div class="stat-card red"><strong>${non.length}</strong><span>Absents</span></div>
     <div class="stat-card gold"><strong>${totalAdultes + totalEnfants}</strong><span>Total invités</span></div>
-    <div class="stat-card"><strong>${totalEnfants}</strong><span>Enfants</span></div>
+    <div class="stat-card purple"><strong>${totalEnfants}</strong><span>Enfants</span></div>
   `;
 
   document.getElementById('count-all').textContent = rsvps.length;
   document.getElementById('count-oui').textContent = oui.length;
   document.getElementById('count-non').textContent = non.length;
-
   renderList();
 }
 
-function renderGuestMeta(r) {
+function renderGuestTags(r) {
   if (r.presence !== 'oui') return '';
   const { adultes, enfants } = guestCount(r);
-  let parts = [`${adultes} adulte(s)`];
-  if (enfants > 0) parts.push(`${enfants} enfant(s)`);
-  return parts.join(' · ') + ' · ';
+  let html = `<span class="tag tag--guests">👥 ${adultes} adulte(s)</span>`;
+  if (enfants > 0) html += `<span class="tag tag--kids">🧒 ${enfants} enfant(s)</span>`;
+  return html;
 }
 
 function renderList() {
@@ -125,7 +124,6 @@ function renderList() {
     empty.textContent = 'Aucune réponse pour le moment.';
     return;
   }
-
   if (!filtered.length) {
     list.innerHTML = '';
     empty.hidden = false;
@@ -134,22 +132,128 @@ function renderList() {
   }
 
   empty.hidden = true;
-  list.innerHTML = filtered.map((r) => `
-    <div class="guest-card" data-id="${r.id}">
-      <div class="guest-fullname">${escapeHtml(fullName(r))}</div>
-      <div class="guest-actions">
-        <span class="badge ${r.presence}">${r.presence === 'oui' ? '✓ Confirmé' : '✗ Absent'}</span>
-        <button type="button" class="btn-delete" data-id="${r.id}" title="Supprimer">🗑</button>
+  list.innerHTML = filtered.map((r, i) => `
+    <article class="guest-card guest-card--${r.presence}" style="animation-delay:${i * 0.04}s">
+      <div class="guest-avatar" aria-hidden="true">${escapeHtml(initials(r))}</div>
+      <div class="guest-body">
+        <div class="guest-top">
+          <div>
+            <h3 class="guest-name">${escapeHtml(fullName(r))}</h3>
+            <p class="guest-phone">📞 ${escapeHtml(r.telephone || '—')}</p>
+          </div>
+          <span class="badge ${r.presence}">${r.presence === 'oui' ? '✓ Confirmé' : '✗ Absent'}</span>
+        </div>
+        <div class="guest-tags">
+          ${renderGuestTags(r)}
+          <span class="tag tag--date">📅 ${new Date(r.dateReponse).toLocaleString('fr-FR')}</span>
+        </div>
+        ${r.message ? `<blockquote class="guest-message">"${escapeHtml(r.message)}"</blockquote>` : ''}
       </div>
-      <div class="guest-meta">
-        ${r.telephone ? '📞 ' + escapeHtml(r.telephone) + ' · ' : ''}
-        ${renderGuestMeta(r)}
-        ${new Date(r.dateReponse).toLocaleString('fr-FR')}
-      </div>
-      ${r.message ? `<div class="guest-message">"${escapeHtml(r.message)}"</div>` : ''}
-    </div>
+      <button type="button" class="btn-delete" data-id="${r.id}" title="Supprimer">🗑</button>
+    </article>
   `).join('');
 }
+
+function showToast(msg, type = 'info') {
+  toastEl.textContent = msg;
+  toastEl.className = `toast toast--${type}`;
+  toastEl.hidden = false;
+  setTimeout(() => { toastEl.hidden = true; }, 5000);
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if ((ch === ',' || ch === ';') && !inQuotes) {
+      result.push(cur.trim());
+      cur = '';
+    } else cur += ch;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+
+  const header = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/^\ufeff/, ''));
+  const col = (names) => header.findIndex((h) => names.some((n) => h.includes(n)));
+
+  const idx = {
+    nom: col(['nom']),
+    prenom: col(['prénom', 'prenom']),
+    tel: col(['téléphone', 'telephone', 'tel']),
+    presence: col(['présence', 'presence']),
+    adultes: col(['adultes']),
+    enfants: col(['enfants']),
+    message: col(['message']),
+  };
+
+  const start = idx.nom >= 0 || idx.prenom >= 0 ? 1 : 0;
+  if (start === 0 && lines.length === 1) return [];
+
+  return lines.slice(start).map((line) => {
+    const cols = parseCSVLine(line);
+    if (idx.nom >= 0) {
+      return {
+        nom: cols[idx.nom],
+        prenom: cols[idx.prenom],
+        telephone: cols[idx.tel],
+        presence: cols[idx.presence]?.toLowerCase().includes('non') ? 'non' : 'oui',
+        nombreAdultes: cols[idx.adultes] || '1',
+        nombreEnfants: cols[idx.enfants] || '0',
+        message: cols[idx.message] || '',
+      };
+    }
+    return {
+      nom: cols[1] || cols[0]?.split(' ')[0],
+      prenom: cols[2] || cols[0]?.split(' ').slice(1).join(' '),
+      telephone: cols[3] || '',
+      presence: (cols[4] || 'oui').toLowerCase().includes('non') ? 'non' : 'oui',
+      nombreAdultes: cols[5] || '1',
+      nombreEnfants: cols[6] || '0',
+      message: cols[7] || '',
+    };
+  }).filter((e) => e.nom && e.prenom);
+}
+
+async function importCSV(file) {
+  const text = await file.text();
+  const entries = parseCSV(text);
+  if (!entries.length) {
+    showToast('Fichier CSV vide ou format non reconnu.', 'error');
+    return;
+  }
+
+  const res = await fetch('/api/rsvp/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ entries }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    showToast(data.error || 'Erreur lors de l\'import.', 'error');
+    return;
+  }
+
+  showToast(`${data.imported} invité(s) importé(s), ${data.skipped} ignoré(s) (doublons ou erreurs).`, 'success');
+  loadRsvps();
+}
+
+document.getElementById('import-btn').addEventListener('click', () => importFile.click());
+importFile.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) importCSV(file);
+  e.target.value = '';
+});
 
 function openDeleteModal(id) {
   const guest = rsvps.find((r) => r.id === id);
@@ -171,18 +275,16 @@ async function confirmDelete() {
   if (!pendingDeleteId) return;
   modalConfirm.disabled = true;
   modalConfirm.textContent = 'Suppression...';
-
   const res = await fetch(`/api/rsvp/${pendingDeleteId}`, { method: 'DELETE' });
   if (!res.ok) {
     modalConfirm.disabled = false;
     modalConfirm.textContent = 'Supprimer';
-    modalGuestName.textContent = 'Erreur — réessayez';
     return;
   }
-
   rsvps = rsvps.filter((r) => r.id !== pendingDeleteId);
   closeDeleteModal();
   renderAll();
+  showToast('Invité supprimé.', 'info');
 }
 
 document.getElementById('guest-list').addEventListener('click', (e) => {
@@ -192,14 +294,8 @@ document.getElementById('guest-list').addEventListener('click', (e) => {
 
 modalCancel.addEventListener('click', closeDeleteModal);
 modalConfirm.addEventListener('click', confirmDelete);
-
-deleteModal.addEventListener('click', (e) => {
-  if (e.target === deleteModal) closeDeleteModal();
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !deleteModal.hidden) closeDeleteModal();
-});
+deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) closeDeleteModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !deleteModal.hidden) closeDeleteModal(); });
 
 function escapeHtml(str) {
   const d = document.createElement('div');
@@ -226,10 +322,9 @@ document.getElementById('export-btn').addEventListener('click', () => {
   const lines = rsvps.map((r) => {
     const { adultes, enfants } = guestCount(r);
     return [fullName(r), r.nom, r.prenom, r.telephone || '', r.presence, adultes, enfants, r.message, r.dateReponse]
-      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-      .join(',');
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',');
   });
-  const blob = new Blob([header.join(',') + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\ufeff' + header.join(',') + '\n' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'rsvp-mariage.csv';

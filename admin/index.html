@@ -41,8 +41,14 @@
 
     <div class="toolbar">
       <input type="search" id="search" placeholder="Rechercher par nom ou téléphone...">
-      <button class="btn-export" id="export-btn">Exporter CSV</button>
+      <div class="toolbar-actions">
+        <input type="file" id="import-file" accept=".csv" hidden>
+        <button type="button" class="btn-import" id="import-btn">Importer CSV</button>
+        <button type="button" class="btn-export" id="export-btn">Exporter CSV</button>
+      </div>
     </div>
+
+    <div class="toast" id="toast" hidden></div>
 
     <div class="guest-list" id="guest-list"></div>
     <p class="empty-msg" id="empty-msg" hidden>Aucune réponse pour le moment.</p>

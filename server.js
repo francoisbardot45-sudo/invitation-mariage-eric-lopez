@@ -44,6 +44,30 @@ function writeRsvps(rsvps) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(rsvps, null, 2), 'utf8');
 }
 
+function normalizeText(str) {
+  return (str || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function normalizePhone(tel) {
+  return (tel || '').replace(/\D/g, '');
+}
+
+function findDuplicate(rsvps, nom, prenom, telephone) {
+  const nNom = normalizeText(nom);
+  const nPrenom = normalizeText(prenom);
+  const nTel = normalizePhone(telephone);
+
+  return rsvps.find((r) => {
+    const sameName = normalizeText(r.nom) === nNom && normalizeText(r.prenom) === nPrenom;
+    const samePhone = nTel.length >= 8 && normalizePhone(r.telephone) === nTel;
+    return sameName || samePhone;
+  });
+}
+
 function migrateEntry(entry) {
   if (!entry.telephone && entry.email) {
     entry.telephone = entry.email;
@@ -59,6 +83,40 @@ function migrateEntry(entry) {
     entry.nombreEnfants = 0;
   }
   return entry;
+}
+
+function buildEntry({ prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message }, id) {
+  const prenomTrim = prenom.trim();
+  const nomTrim = nom.trim();
+  const adultesRaw = presence === 'oui' ? parseInt(nombreAdultes, 10) : 0;
+  const adultes = presence === 'oui' ? (adultesRaw === 0 ? 1 : Math.max(1, adultesRaw || 1)) : 0;
+  const enfants = presence === 'oui' ? Math.max(0, parseInt(nombreEnfants, 10) || 0) : 0;
+
+  return {
+    id: id || Date.now().toString(),
+    prenom: prenomTrim,
+    nom: nomTrim,
+    nomComplet: `${nomTrim} ${prenomTrim}`,
+    telephone: telephone.trim(),
+    presence,
+    nombreAdultes: adultes,
+    nombreEnfants: enfants,
+    message: message?.trim() || '',
+    dateReponse: new Date().toISOString(),
+  };
+}
+
+function validateRsvpInput({ prenom, nom, telephone, presence }) {
+  if (!prenom?.trim() || !nom?.trim()) {
+    return 'Le prénom et le nom sont obligatoires.';
+  }
+  if (!telephone?.trim()) {
+    return 'Le numéro de téléphone est obligatoire.';
+  }
+  if (!['oui', 'non'].includes(presence)) {
+    return 'Veuillez confirmer votre présence.';
+  }
+  return null;
 }
 
 app.post('/api/admin/login', (req, res) => {
@@ -83,43 +141,80 @@ app.get('/api/admin/check', (req, res) => {
 });
 
 app.post('/api/rsvp', (req, res) => {
-  const { prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message } = req.body;
-
-  if (!prenom?.trim() || !nom?.trim()) {
-    return res.status(400).json({ error: 'Le prénom et le nom sont obligatoires.' });
+  const error = validateRsvpInput(req.body);
+  if (error) {
+    return res.status(400).json({ error });
   }
 
-  if (!telephone?.trim()) {
-    return res.status(400).json({ error: 'Le numéro de téléphone est obligatoire.' });
-  }
-
-  if (!['oui', 'non'].includes(presence)) {
-    return res.status(400).json({ error: 'Veuillez confirmer votre présence.' });
-  }
-
-  const prenomTrim = prenom.trim();
-  const nomTrim = nom.trim();
-  const adultesRaw = presence === 'oui' ? parseInt(nombreAdultes, 10) : 0;
-  const adultes = presence === 'oui' ? (adultesRaw === 0 ? 1 : Math.max(1, adultesRaw || 1)) : 0;
-  const enfants = presence === 'oui' ? Math.max(0, parseInt(nombreEnfants, 10) || 0) : 0;
   const rsvps = readRsvps();
-  const entry = {
-    id: Date.now().toString(),
-    prenom: prenomTrim,
-    nom: nomTrim,
-    nomComplet: `${nomTrim} ${prenomTrim}`,
-    telephone: telephone.trim(),
-    presence,
-    nombreAdultes: adultes,
-    nombreEnfants: enfants,
-    message: message?.trim() || '',
-    dateReponse: new Date().toISOString(),
-  };
+  const duplicate = findDuplicate(rsvps, req.body.nom, req.body.prenom, req.body.telephone);
 
+  if (duplicate) {
+    return res.status(409).json({
+      duplicate: true,
+      error: `Bonjour ${duplicate.prenom}, vous êtes déjà inscrit(e) ! Votre présence a bien été enregistrée le ${new Date(duplicate.dateReponse).toLocaleDateString('fr-FR')}.`,
+    });
+  }
+
+  const entry = buildEntry(req.body);
   rsvps.push(entry);
   writeRsvps(rsvps);
 
   res.json({ success: true, message: 'Merci ! Votre réponse a bien été enregistrée.' });
+});
+
+app.post('/api/rsvp/import', (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(401).json({ error: 'Accès non autorisé.' });
+  }
+
+  const { entries } = req.body;
+  if (!Array.isArray(entries) || !entries.length) {
+    return res.status(400).json({ error: 'Aucune entrée à importer.' });
+  }
+
+  const rsvps = readRsvps();
+  let imported = 0;
+  let skipped = 0;
+  const skippedRows = [];
+
+  entries.forEach((raw, index) => {
+    const nom = raw.nom?.trim();
+    const prenom = raw.prenom?.trim();
+    const telephone = raw.telephone?.trim();
+    const presence = raw.presence === 'non' ? 'non' : 'oui';
+
+    if (!nom || !prenom || !telephone) {
+      skipped++;
+      skippedRows.push({ line: index + 1, reason: 'Données incomplètes' });
+      return;
+    }
+
+    if (findDuplicate(rsvps, nom, prenom, telephone)) {
+      skipped++;
+      skippedRows.push({ line: index + 1, name: `${nom} ${prenom}`, reason: 'Doublon' });
+      return;
+    }
+
+    const entry = buildEntry(
+      {
+        nom,
+        prenom,
+        telephone,
+        presence,
+        nombreAdultes: raw.nombreAdultes ?? raw.adultes ?? 1,
+        nombreEnfants: raw.nombreEnfants ?? raw.enfants ?? 0,
+        message: raw.message || '',
+      },
+      `${Date.now()}-${index}`
+    );
+
+    rsvps.push(entry);
+    imported++;
+  });
+
+  writeRsvps(rsvps);
+  res.json({ imported, skipped, skippedRows });
 });
 
 app.get('/api/rsvp', (req, res) => {
