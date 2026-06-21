@@ -908,6 +908,89 @@ body {
   text-align: center;
 }
 
+.pagne-pay-info {
+  background: rgba(29, 161, 242, 0.08);
+  border: 1px solid rgba(29, 161, 242, 0.25);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.pagne-pay-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.pagne-pay-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.success-pagne {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: rgba(29, 161, 242, 0.08);
+  border-radius: 14px;
+  border: 1px solid rgba(29, 161, 242, 0.2);
+  text-align: center;
+}
+
+.success-pagne-amount {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 0.75rem;
+}
+
+.success-pagne-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.success-pagne-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.75rem 0 0.5rem;
+}
+
+.success-pagne-done {
+  font-size: 0.9rem;
+  color: #2e7d32;
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.btn-declare-paid {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 0.5rem auto 0;
+  padding: 0.85rem 1.25rem;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2e7d32, #1b5e20);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.35);
+  transition: transform 0.2s;
+}
+
+.btn-declare-paid:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn-declare-paid:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .wave-link-hint {
   font-family: 'Cormorant Garamond', serif;
   font-size: 1.05rem;

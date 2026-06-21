@@ -24,7 +24,5 @@ services:
         value: "+2250708020626"
       - key: WAVE_PHONE_DISPLAY
         value: "07 08 02 06 26"
-      - key: WAVE_PAYMENT_LINK
-        sync: false
       - key: PAGNE_PRICE
         value: "2500"

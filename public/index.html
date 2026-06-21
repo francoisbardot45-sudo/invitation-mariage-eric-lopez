@@ -243,28 +243,11 @@
 
             <p class="pagne-total" id="pagne-total" hidden>Total : <strong>0 FCFA</strong></p>
 
-            <div class="pagne-payment" id="pagne-payment" hidden>
-              <span class="label">Mode de paiement</span>
-              <div class="radio-group radio-group--compact">
-                <label class="radio-card radio-card--wave">
-                  <input type="radio" name="pagnePaiement" value="wave">
-                  <span class="radio-icon">📱</span>
-                  <span class="radio-label">Payer avec Wave / Orange Money</span>
-                  <span class="radio-hint">Dépôt au numéro affiché ci-dessous</span>
-                </label>
-                <label class="radio-card radio-card--later">
-                  <input type="radio" name="pagnePaiement" value="plus_tard">
-                  <span class="radio-icon">⏳</span>
-                  <span class="radio-label">Je paierai plus tard</span>
-                  <span class="radio-hint">Commande enregistrée sans paiement</span>
-                </label>
-              </div>
-              <div class="wave-preview" id="wave-preview" hidden>
-                <p class="wave-link-hint" id="wave-link-hint" hidden></p>
-                <p class="wave-preview-label">Numéro Wave / Orange Money (dépôt manuel) :</p>
-                <p class="wave-phone" id="wave-phone-display">—</p>
-                <button type="button" class="btn-wave-copy" id="btn-copy-wave">Copier le numéro</button>
-              </div>
+            <div class="pagne-pay-info" id="pagne-pay-info" hidden>
+              <p class="pagne-pay-label">Paiement Wave / Orange Money :</p>
+              <p class="wave-phone" id="wave-phone-display">07 08 02 06 26</p>
+              <button type="button" class="btn-wave-copy" id="btn-copy-wave">Copier le numéro</button>
+              <p class="pagne-pay-hint">Indiquez votre nom en référence lors du dépôt.</p>
             </div>
           </div>
 
@@ -294,12 +277,14 @@
         <div class="success-ring" id="success-icon">💍</div>
         <h3 id="success-title">Merci du fond du cœur</h3>
         <p id="success-message">Votre réponse a bien été enregistrée.</p>
-        <div class="success-wave" id="success-wave" hidden>
-          <p class="success-wave-amount" id="success-wave-amount"></p>
-          <button type="button" class="btn-wave-pay" id="btn-open-wave">Comment payer</button>
-          <p class="success-wave-hint">Faites un dépôt Wave ou Orange Money au numéro ci-dessous avec le montant indiqué. Indiquez votre nom en référence du paiement.</p>
-          <p class="wave-phone success-wave-phone" id="success-wave-phone"></p>
-          <button type="button" class="btn-wave-copy" id="btn-copy-wave-success">Copier le numéro Wave</button>
+        <div class="success-pagne" id="success-pagne" hidden>
+          <p class="success-pagne-amount" id="success-pagne-amount"></p>
+          <p class="success-pagne-label">Numéro Wave / Orange Money :</p>
+          <p class="wave-phone success-pagne-phone" id="success-pagne-phone"></p>
+          <button type="button" class="btn-wave-copy" id="btn-copy-phone-success">Copier le numéro</button>
+          <p class="success-pagne-hint">Après votre dépôt, cliquez ci-dessous pour nous prévenir.</p>
+          <button type="button" class="btn-declare-paid" id="btn-declare-paid">Paiement effectué</button>
+          <p class="success-pagne-done" id="success-pagne-done" hidden></p>
         </div>
       </div>
       </div>

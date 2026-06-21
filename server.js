@@ -9,7 +9,7 @@ try {
   /* dotenv optionnel */
 }
 
-const { storageMode, readRsvps, insertRsvp, deleteRsvp, updateRsvp, PAGNE_PRICE } = require('./db');
+const { storageMode, readRsvps, getRsvpById, insertRsvp, deleteRsvp, updateRsvp, PAGNE_PRICE } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,7 +19,6 @@ const ADMIN_PATH = process.env.ADMIN_PATH || 'gestion-eric-lopez-2026';
 
 const WAVE_PHONE = process.env.WAVE_PHONE || '+2250708020626';
 const WAVE_PHONE_DISPLAY = process.env.WAVE_PHONE_DISPLAY || '07 08 02 06 26';
-const WAVE_PAYMENT_LINK = process.env.WAVE_PAYMENT_LINK || '';
 
 const ADMIN_TOKEN = crypto.createHmac('sha256', ADMIN_SECRET).update('admin-session').digest('hex');
 const ADMIN_DIR = path.join(__dirname, 'admin');
@@ -64,7 +63,7 @@ function findDuplicate(rsvps, nom, prenom, telephone) {
 }
 
 function buildEntry(
-  { prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message, pagneQuantite, pagnePaiement },
+  { prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message, pagneQuantite },
   id
 ) {
   const prenomTrim = prenom.trim();
@@ -74,13 +73,8 @@ function buildEntry(
   const enfants = presence === 'oui' ? Math.max(0, parseInt(nombreEnfants, 10) || 0) : 0;
 
   let qty = 0;
-  let paiement = 'aucun';
   if (presence === 'oui') {
     qty = Math.max(0, Math.min(20, parseInt(pagneQuantite, 10) || 0));
-    if (qty > 0) {
-      const allowed = ['wave', 'plus_tard'];
-      paiement = allowed.includes(pagnePaiement) ? pagnePaiement : 'plus_tard';
-    }
   }
 
   return {
@@ -97,7 +91,8 @@ function buildEntry(
     pagneQuantite: qty,
     pagnePrixUnitaire: PAGNE_PRICE,
     pagneTotal: qty * PAGNE_PRICE,
-    pagnePaiement: qty > 0 ? paiement : 'aucun',
+    pagnePaiement: qty > 0 ? 'commande' : 'aucun',
+    pagneDeclareDate: null,
   };
 }
 
@@ -160,18 +155,58 @@ app.post('/api/rsvp', async (req, res) => {
 
     let message = 'Merci ! Votre réponse a bien été enregistrée.';
     if (entry.pagneQuantite > 0) {
-      message =
-        entry.pagnePaiement === 'wave'
-          ? `Merci ! Votre réponse et votre commande de ${entry.pagneQuantite} pagne(s) sont enregistrées. Procédez au paiement Wave ci-dessous.`
-          : `Merci ! Votre réponse et votre commande de ${entry.pagneQuantite} pagne(s) sont enregistrées. Vous pourrez régler plus tard.`;
+      message = `Merci ! Votre commande de ${entry.pagneQuantite} pagne(s) est enregistrée. Effectuez le paiement puis cliquez sur « Paiement effectué ».`;
     }
 
     res.json({
       success: true,
       message,
+      id: entry.id,
+      telephone: entry.telephone,
       pagne: entry.pagneQuantite > 0
         ? { quantite: entry.pagneQuantite, total: entry.pagneTotal, paiement: entry.pagnePaiement }
         : null,
+    });
+  } catch (err) {
+    handleError(res, err);
+  }
+});
+
+app.post('/api/rsvp/:id/declare-paiement', async (req, res) => {
+  try {
+    const { telephone } = req.body;
+    if (!telephone?.trim()) {
+      return res.status(400).json({ error: 'Numéro de téléphone requis.' });
+    }
+
+    const entry = await getRsvpById(req.params.id);
+    if (!entry) {
+      return res.status(404).json({ error: 'Réponse introuvable.' });
+    }
+    if (normalizePhone(entry.telephone) !== normalizePhone(telephone)) {
+      return res.status(403).json({ error: 'Numéro de téléphone incorrect.' });
+    }
+    if ((entry.pagneQuantite ?? 0) === 0) {
+      return res.status(400).json({ error: 'Aucune commande de pagne.' });
+    }
+    if (entry.pagnePaiement === 'paye') {
+      return res.json({ success: true, message: 'Votre paiement est déjà validé. Merci !' });
+    }
+    if (entry.pagnePaiement === 'declare_paye') {
+      return res.json({
+        success: true,
+        message: 'Nous avons bien reçu votre confirmation. Nous vérifions le paiement.',
+      });
+    }
+
+    await updateRsvp(entry.id, {
+      pagnePaiement: 'declare_paye',
+      pagneDeclareDate: new Date().toISOString(),
+    });
+
+    res.json({
+      success: true,
+      message: 'Merci ! Nous vérifierons votre paiement et vous confirmerons rapidement.',
     });
   } catch (err) {
     handleError(res, err);
@@ -255,8 +290,6 @@ app.get('/api/config', (_req, res) => {
     pagnePrice: PAGNE_PRICE,
     wavePhone: WAVE_PHONE_DISPLAY,
     wavePhoneDial: WAVE_PHONE,
-    wavePaymentLink: WAVE_PAYMENT_LINK,
-    waveMerchantName: process.env.WAVE_MERCHANT_NAME || 'Eric & Lopez',
   });
 });
 
@@ -266,7 +299,7 @@ app.patch('/api/rsvp/:id/pagne', async (req, res) => {
   }
   try {
     const { pagnePaiement } = req.body;
-    const allowed = ['aucun', 'wave', 'plus_tard', 'paye'];
+    const allowed = ['aucun', 'commande', 'declare_paye', 'paye', 'wave', 'plus_tard'];
     if (!allowed.includes(pagnePaiement)) {
       return res.status(400).json({ error: 'Statut de paiement invalide.' });
     }

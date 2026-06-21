@@ -78,9 +78,11 @@ function guestCount(r) {
 function pagneLabel(status) {
   const map = {
     aucun: '',
-    wave: 'Wave en attente',
-    plus_tard: 'À payer plus tard',
+    commande: 'En attente de paiement',
+    declare_paye: 'Paiement déclaré — à valider',
     paye: 'Payé ✓',
+    wave: 'En attente de paiement',
+    plus_tard: 'En attente de paiement',
   };
   return map[status] || status;
 }
@@ -105,8 +107,11 @@ function pagneStats() {
   const totalPagnes = withPagne.reduce((s, r) => s + (r.pagneQuantite ?? 0), 0);
   const totalFcfa = withPagne.reduce((s, r) => s + (r.pagneTotal ?? 0), 0);
   const payes = withPagne.filter((r) => r.pagnePaiement === 'paye');
-  const enAttente = withPagne.filter((r) => r.pagnePaiement !== 'paye' && r.pagnePaiement !== 'aucun');
-  return { withPagne, totalPagnes, totalFcfa, payes: payes.length, enAttente: enAttente.length };
+  const aValider = withPagne.filter((r) => r.pagnePaiement === 'declare_paye');
+  const enAttente = withPagne.filter(
+    (r) => !['paye', 'aucun'].includes(r.pagnePaiement || '')
+  );
+  return { withPagne, totalPagnes, totalFcfa, payes: payes.length, aValider: aValider.length, enAttente: enAttente.length };
 }
 
 function renderAll() {
@@ -124,7 +129,8 @@ function renderAll() {
     <div class="stat-card purple"><strong>${totalEnfants}</strong><span>Enfants</span></div>
     <div class="stat-card blue"><strong>${ps.totalPagnes}</strong><span>Pagnes commandés</span></div>
     <div class="stat-card wave"><strong>${ps.totalFcfa.toLocaleString('fr-FR')}</strong><span>FCFA (pagnes)</span></div>
-    <div class="stat-card orange"><strong>${ps.enAttente}</strong><span>Paiements en attente</span></div>
+    <div class="stat-card orange"><strong>${ps.aValider}</strong><span>À valider (déclarés)</span></div>
+    <div class="stat-card red"><strong>${ps.enAttente}</strong><span>Paiements en cours</span></div>
   `;
 
   document.getElementById('count-all').textContent = rsvps.length;
@@ -143,8 +149,10 @@ function renderGuestTags(r) {
   }
   const qty = r.pagneQuantite ?? 0;
   if (qty > 0) {
-    const status = r.pagnePaiement || 'plus_tard';
-    const statusClass = status === 'paye' ? 'tag--pagne-paid' : 'tag--pagne-pending';
+    const status = r.pagnePaiement || 'commande';
+    const statusClass =
+      status === 'paye' ? 'tag--pagne-paid' :
+      status === 'declare_paye' ? 'tag--pagne-declared' : 'tag--pagne-pending';
     html += `<span class="tag tag--pagne ${statusClass}">🧵 ${qty} pagne(s) — ${(r.pagneTotal ?? 0).toLocaleString('fr-FR')} FCFA</span>`;
     html += `<span class="tag ${statusClass}">${pagneLabel(status)}</span>`;
   }
@@ -187,7 +195,9 @@ function renderList() {
         </div>
         ${r.message ? `<blockquote class="guest-message">"${escapeHtml(r.message)}"</blockquote>` : ''}
         ${(r.pagneQuantite ?? 0) > 0 && r.pagnePaiement !== 'paye' ? `
-          <button type="button" class="btn-mark-paid" data-id="${r.id}">Marquer pagne payé</button>
+          <button type="button" class="btn-mark-paid ${r.pagnePaiement === 'declare_paye' ? 'btn-mark-paid--urgent' : ''}" data-id="${r.id}">
+            ${r.pagnePaiement === 'declare_paye' ? '✓ Valider le paiement reçu' : 'Marquer comme payé'}
+          </button>
         ` : ''}
       </div>
       <button type="button" class="btn-delete" data-id="${r.id}" title="Supprimer">🗑</button>

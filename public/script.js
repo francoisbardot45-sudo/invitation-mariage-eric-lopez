@@ -9,18 +9,12 @@ const guestsField = document.getElementById('guests-field');
 const pagneField = document.getElementById('pagne-field');
 const pagneQuantite = document.getElementById('pagneQuantite');
 const pagneTotal = document.getElementById('pagne-total');
-const pagnePayment = document.getElementById('pagne-payment');
-const wavePreview = document.getElementById('wave-preview');
+const pagnePayInfo = document.getElementById('pagne-pay-info');
 const wavePhoneDisplay = document.getElementById('wave-phone-display');
-const successWave = document.getElementById('success-wave');
+const successPagne = document.getElementById('success-pagne');
 
-let siteConfig = {
-  pagnePrice: 2500,
-  wavePhone: '07 08 02 06 26',
-  wavePhoneDial: '+2250708020626',
-  wavePaymentLink: '',
-  waveMerchantName: 'Eric & Lopez',
-};
+let siteConfig = { pagnePrice: 2500, wavePhone: '07 08 02 06 26' };
+let lastRsvp = null;
 
 async function loadConfig() {
   try {
@@ -72,9 +66,7 @@ function initReveal() {
   const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
+        if (entry.isIntersecting) entry.target.classList.add('visible');
       });
     },
     { threshold: 0.12 }
@@ -88,37 +80,9 @@ function initReveal() {
 function updatePagneUI() {
   const qty = parseInt(pagneQuantite.value, 10) || 0;
   const total = qty * siteConfig.pagnePrice;
-
   pagneTotal.hidden = qty === 0;
   pagneTotal.innerHTML = `Total : <strong>${total.toLocaleString('fr-FR')} FCFA</strong>`;
-  pagnePayment.hidden = qty === 0;
-
-  if (qty > 0) {
-    const waveRadio = form.querySelector('input[name="pagnePaiement"][value="wave"]');
-    const laterRadio = form.querySelector('input[name="pagnePaiement"][value="plus_tard"]');
-    if (!waveRadio.checked && !laterRadio.checked) {
-      waveRadio.checked = true;
-    }
-    updateWavePreview();
-  } else {
-    wavePreview.hidden = true;
-  }
-}
-
-function updateWavePreview() {
-  const waveSelected = form.querySelector('input[name="pagnePaiement"][value="wave"]')?.checked;
-  const qty = parseInt(pagneQuantite.value, 10) || 0;
-  const total = qty * siteConfig.pagnePrice;
-  const hasPay = siteConfig.wavePaymentLink || siteConfig.wavePhone;
-  wavePreview.hidden = !waveSelected || qty === 0 || !hasPay;
-
-  const linkHint = document.getElementById('wave-link-hint');
-  if (linkHint) {
-    linkHint.hidden = !siteConfig.wavePaymentLink || !waveSelected || qty === 0;
-    if (!linkHint.hidden) {
-      linkHint.textContent = `Page Wave avec montant : ${total.toLocaleString('fr-FR')} FCFA`;
-    }
-  }
+  pagnePayInfo.hidden = qty === 0;
 }
 
 function togglePresencePanels() {
@@ -136,37 +100,8 @@ document.querySelectorAll('input[name="presence"]').forEach((radio) => {
 });
 
 pagneQuantite.addEventListener('change', updatePagneUI);
-document.querySelectorAll('input[name="pagnePaiement"]').forEach((radio) => {
-  radio.addEventListener('change', updateWavePreview);
-});
 
-function buildWaveUrl(amount) {
-  if (siteConfig.wavePaymentLink) {
-    const base = siteConfig.wavePaymentLink.trim().replace(/\?amount=\d*$/, '');
-    const sep = base.includes('?') ? '&' : '?';
-    return `${base}${sep}amount=${amount}`;
-  }
-  return null;
-}
-
-function openWavePayment(amount) {
-  const url = buildWaveUrl(amount);
-  if (url) {
-    window.open(url, '_blank', 'noopener,noreferrer');
-    return;
-  }
-  if (siteConfig.wavePhone) {
-    alert(
-      `Effectuez un dépôt Wave ou Orange Money au ${siteConfig.wavePhone}\n` +
-        `Montant : ${amount.toLocaleString('fr-FR')} FCFA\n\n` +
-        'Indiquez votre nom en référence du paiement.'
-    );
-    return;
-  }
-  alert('Paiement non configuré. Contactez les mariés.');
-}
-
-async function copyWavePhone(btn) {
+async function copyPhone(btn) {
   if (!siteConfig.wavePhone) return;
   try {
     await navigator.clipboard.writeText(siteConfig.wavePhone);
@@ -178,51 +113,60 @@ async function copyWavePhone(btn) {
   }
 }
 
-document.getElementById('btn-copy-wave')?.addEventListener('click', (e) => {
-  copyWavePhone(e.currentTarget);
-});
-
-document.getElementById('btn-copy-wave-success')?.addEventListener('click', (e) => {
-  copyWavePhone(e.currentTarget);
-});
+document.getElementById('btn-copy-wave')?.addEventListener('click', (e) => copyPhone(e.currentTarget));
+document.getElementById('btn-copy-phone-success')?.addEventListener('click', (e) => copyPhone(e.currentTarget));
 
 function initScrollHint() {
   const hint = document.getElementById('scroll-hint');
   const rsvp = document.getElementById('rsvp');
   if (!hint || !rsvp) return;
-
   const observer = new IntersectionObserver(
-    ([entry]) => {
-      hint.classList.toggle('hidden', entry.isIntersecting);
-    },
+    ([entry]) => { hint.classList.toggle('hidden', entry.isIntersecting); },
     { threshold: 0.15 }
   );
   observer.observe(rsvp);
-
-  hint.addEventListener('click', () => {
-    hint.classList.add('hidden');
-  });
+  hint.addEventListener('click', () => hint.classList.add('hidden'));
 }
 
-function showSuccessWave(pagne) {
-  if (!pagne || pagne.paiement !== 'wave') {
-    successWave.hidden = true;
+function showSuccessPagne(pagne) {
+  const declareBtn = document.getElementById('btn-declare-paid');
+  const doneMsg = document.getElementById('success-pagne-done');
+
+  if (!pagne) {
+    successPagne.hidden = true;
     return;
   }
 
-  successWave.hidden = false;
-  document.getElementById('success-wave-amount').textContent =
-    `${pagne.quantite} pagne(s) — ${pagne.total.toLocaleString('fr-FR')} FCFA à régler`;
-  document.getElementById('success-wave-phone').textContent = siteConfig.wavePhone || '';
+  successPagne.hidden = false;
+  document.getElementById('success-pagne-amount').textContent =
+    `${pagne.quantite} pagne(s) — ${pagne.total.toLocaleString('fr-FR')} FCFA`;
+  document.getElementById('success-pagne-phone').textContent = siteConfig.wavePhone || '';
 
-  const btn = document.getElementById('btn-open-wave');
-  if (siteConfig.wavePaymentLink) {
-    btn.textContent = 'Ouvrir la page Wave pour payer';
-    btn.onclick = () => openWavePayment(pagne.total);
-  } else {
-    btn.textContent = 'Voir les instructions de paiement';
-    btn.onclick = () => openWavePayment(pagne.total);
-  }
+  declareBtn.hidden = false;
+  declareBtn.disabled = false;
+  doneMsg.hidden = true;
+
+  declareBtn.onclick = async () => {
+    if (!lastRsvp?.id) return;
+    declareBtn.disabled = true;
+    declareBtn.textContent = 'Envoi...';
+    try {
+      const res = await fetch(`/api/rsvp/${lastRsvp.id}/declare-paiement`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telephone: lastRsvp.telephone }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erreur');
+      declareBtn.hidden = true;
+      doneMsg.hidden = false;
+      doneMsg.textContent = result.message;
+    } catch (err) {
+      declareBtn.disabled = false;
+      declareBtn.textContent = 'Paiement effectué';
+      alert(err.message);
+    }
+  };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -230,8 +174,6 @@ form.addEventListener('submit', async (e) => {
   formError.hidden = true;
 
   const qty = parseInt(pagneQuantite.value, 10) || 0;
-  const pagnePaiementEl = form.querySelector('input[name="pagnePaiement"]:checked');
-
   const data = {
     prenom: form.prenom.value,
     nom: form.nom.value,
@@ -241,7 +183,6 @@ form.addEventListener('submit', async (e) => {
     nombreEnfants: form.nombreEnfants?.value || '0',
     message: form.message.value,
     pagneQuantite: qty,
-    pagnePaiement: qty > 0 ? pagnePaiementEl?.value || 'plus_tard' : 'aucun',
   };
 
   submitBtn.disabled = true;
@@ -253,7 +194,6 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-
     const result = await res.json();
 
     if (res.status === 409 && result.duplicate) {
@@ -262,28 +202,28 @@ form.addEventListener('submit', async (e) => {
       document.getElementById('success-icon').textContent = '✓';
       document.getElementById('success-title').textContent = 'Déjà inscrit(e)';
       document.getElementById('success-message').textContent = result.error;
-      successWave.hidden = true;
+      successPagne.hidden = true;
       successEl.classList.add('success--duplicate');
       successEl.hidden = false;
       return;
     }
 
-    if (!res.ok) {
-      throw new Error(result.error || 'Une erreur est survenue.');
-    }
+    if (!res.ok) throw new Error(result.error || 'Une erreur est survenue.');
+
+    lastRsvp = { id: result.id, telephone: result.telephone || data.telephone };
 
     form.hidden = true;
     document.querySelector('.rsvp-header').hidden = true;
     document.getElementById('success-icon').textContent = '💍';
     document.getElementById('success-title').textContent = 'Merci du fond du cœur';
     document.getElementById('success-message').textContent = result.message;
-    showSuccessWave(result.pagne);
+    showSuccessPagne(result.pagne);
     successEl.classList.remove('success--duplicate');
     successEl.hidden = false;
   } catch (err) {
     const isNetworkError = err.message === 'Failed to fetch' || err.name === 'TypeError';
     formError.textContent = isNetworkError
-      ? 'Impossible de contacter le serveur. Ouvrez la page via http://localhost:3000 (pas en fichier local) et vérifiez que le serveur est démarré (npm start).'
+      ? 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.'
       : err.message;
     formError.hidden = false;
     submitBtn.disabled = false;

@@ -85,7 +85,9 @@ function migrateEntry(entry) {
   if (entry.pagneQuantite === undefined) entry.pagneQuantite = 0;
   if (entry.pagnePrixUnitaire === undefined) entry.pagnePrixUnitaire = PAGNE_PRICE;
   if (entry.pagneTotal === undefined) entry.pagneTotal = entry.pagneQuantite * PAGNE_PRICE;
-  if (!entry.pagnePaiement) entry.pagnePaiement = 'aucun';
+  if (entry.pagnePaiement === undefined || entry.pagnePaiement === 'wave' || entry.pagnePaiement === 'plus_tard') {
+    entry.pagnePaiement = entry.pagneQuantite > 0 ? 'commande' : 'aucun';
+  }
   return entry;
 }
 
@@ -105,6 +107,7 @@ function docToEntry(id, data) {
     pagnePrixUnitaire: data.pagnePrixUnitaire ?? PAGNE_PRICE,
     pagneTotal: data.pagneTotal ?? 0,
     pagnePaiement: data.pagnePaiement ?? 'aucun',
+    pagneDeclareDate: data.pagneDeclareDate || null,
   });
 }
 
@@ -123,6 +126,7 @@ function entryToDoc(entry) {
     pagnePrixUnitaire: entry.pagnePrixUnitaire ?? PAGNE_PRICE,
     pagneTotal: entry.pagneTotal ?? 0,
     pagnePaiement: entry.pagnePaiement ?? 'aucun',
+    pagneDeclareDate: entry.pagneDeclareDate || null,
   };
 }
 
@@ -157,6 +161,9 @@ async function insertRsvp(entry) {
     await db.collection(COLLECTION).doc(entry.id).set(entryToDoc(entry));
     return;
   }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Firebase non configuré — enregistrement refusé.');
+  }
   const rsvps = readRsvpsFile();
   rsvps.push(entry);
   writeRsvpsFile(rsvps);
@@ -168,6 +175,9 @@ async function deleteRsvp(id) {
     await db.collection(COLLECTION).doc(id).delete();
     return;
   }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Firebase non configuré.');
+  }
   writeRsvpsFile(readRsvpsFile().filter((r) => r.id !== id));
 }
 
@@ -177,6 +187,9 @@ async function updateRsvp(id, fields) {
     await db.collection(COLLECTION).doc(id).update(fields);
     return;
   }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Firebase non configuré.');
+  }
   const rsvps = readRsvpsFile();
   const idx = rsvps.findIndex((r) => r.id === id);
   if (idx >= 0) {
@@ -185,10 +198,21 @@ async function updateRsvp(id, fields) {
   }
 }
 
+async function getRsvpById(id) {
+  const db = initFirebase();
+  if (db) {
+    const doc = await db.collection(COLLECTION).doc(id).get();
+    if (!doc.exists) return null;
+    return docToEntry(doc.id, doc.data());
+  }
+  return readRsvpsFile().find((r) => r.id === id) || null;
+}
+
 module.exports = {
   storageMode,
   migrateEntry,
   readRsvps,
+  getRsvpById,
   insertRsvp,
   deleteRsvp,
   updateRsvp,

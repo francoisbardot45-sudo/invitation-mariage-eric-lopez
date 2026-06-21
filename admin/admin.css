@@ -340,9 +340,17 @@ body {
   background: rgba(46, 125, 50, 0.15);
 }
 
-.btn-mark-paid:disabled {
-  opacity: 0.5;
-  cursor: default;
+.tag--pagne-declared { background: rgba(255, 152, 0, 0.12); color: #e65100; border-color: rgba(255, 152, 0, 0.25); }
+
+.btn-mark-paid--urgent {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.45);
+  color: #e65100;
+  font-weight: 700;
+}
+
+.btn-mark-paid--urgent:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.25);
 }
 
 .guest-message {
