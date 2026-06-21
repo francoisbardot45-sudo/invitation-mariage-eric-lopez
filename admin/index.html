@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Espace Administrateur — Mariage</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="__ADMIN_BASE__/admin.css">
+</head>
+<body>
+  <div class="login-screen" id="login-screen">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h1>Espace privé</h1>
+      <p>Réservé aux mariés — Eric &amp; Lopez</p>
+      <form id="login-form">
+        <input type="password" id="password" placeholder="Mot de passe" required autocomplete="current-password">
+        <button type="submit">Se connecter</button>
+        <p class="login-error" id="login-error" hidden></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard" hidden>
+    <header class="dash-header">
+      <div>
+        <h1>Réponses RSVP</h1>
+        <p class="dash-sub">Mariage Eric &amp; Lopez — 15 août 2026</p>
+      </div>
+      <button class="btn-logout" id="logout-btn">Déconnexion</button>
+    </header>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-filter="all">Tous <span id="count-all">0</span></button>
+      <button class="tab" data-filter="oui">Confirmés ✓ <span id="count-oui">0</span></button>
+      <button class="tab" data-filter="non">Absents ✗ <span id="count-non">0</span></button>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Rechercher par nom ou téléphone...">
+      <button class="btn-export" id="export-btn">Exporter CSV</button>
+    </div>
+
+    <div class="guest-list" id="guest-list"></div>
+    <p class="empty-msg" id="empty-msg" hidden>Aucune réponse pour le moment.</p>
+  </div>
+
+  <div class="modal-overlay" id="delete-modal" hidden>
+    <div class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+      <div class="modal-icon" aria-hidden="true">🗑</div>
+      <h2 id="modal-title">Supprimer cet invité ?</h2>
+      <p class="modal-name" id="modal-guest-name"></p>
+      <p class="modal-warning">Cette action est irréversible. La réponse sera définitivement effacée.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal btn-cancel" id="modal-cancel">Annuler</button>
+        <button type="button" class="btn-modal btn-confirm" id="modal-confirm">Supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="__ADMIN_BASE__/admin.js"></script>
+</body>
+</html>

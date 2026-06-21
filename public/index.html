@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitation au Mariage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Great+Vibes&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="intro" id="intro">
+    <div class="intro-inner">
+      <div class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <span class="envelope-heart">♥</span>
+        </div>
+      </div>
+      <p class="intro-text">Une invitation pour vous...</p>
+      <button class="intro-btn" id="open-invite">Ouvrir l'invitation</button>
+    </div>
+  </div>
+
+  <div class="petals" aria-hidden="true" id="petals"></div>
+
+  <div class="page" id="page" hidden>
+    <header class="header reveal">
+      <p class="eyebrow">Nous avons le plaisir de vous inviter</p>
+      <h1 class="script-title">Notre Mariage</h1>
+      <div class="ornament"><span>✦</span><span class="line"></span><span>✦</span></div>
+    </header>
+
+    <section class="photo-section reveal">
+      <div class="photo-frame">
+        <div class="photo-frame-inner">
+          <img src="couple.png" alt="Le couple" class="couple-photo">
+        </div>
+        <div class="frame-corner tl"></div>
+        <div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div>
+        <div class="frame-corner br"></div>
+      </div>
+      <p class="couple-names">Eric <span>&</span> Lopez</p>
+    </section>
+
+    <section class="details reveal">
+      <div class="event-banner">
+        <article class="event-item">
+          <div class="event-icon event-icon--date" aria-hidden="true">
+            <span class="cal-day">15</span>
+            <span class="cal-month">Août</span>
+            <span class="cal-year">2026</span>
+          </div>
+          <div class="event-body">
+            <span class="event-tag">Date</span>
+            <p class="event-main">Samedi</p>
+            <p class="event-sub">15 août 2026</p>
+          </div>
+        </article>
+
+        <div class="event-divider" aria-hidden="true"><span>✦</span></div>
+
+        <article class="event-item">
+          <div class="event-icon event-icon--place" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/>
+              <circle cx="12" cy="10" r="2.5"/>
+            </svg>
+          </div>
+          <div class="event-body">
+            <span class="event-tag">Réception</span>
+            <p class="event-main">Chefferie</p>
+            <p class="event-sub">d'Anoumabo</p>
+          </div>
+        </article>
+
+        <div class="event-divider" aria-hidden="true"><span>✦</span></div>
+
+        <article class="event-item">
+          <div class="event-icon event-icon--time" aria-hidden="true">
+            <span class="clock-hour">13</span>
+            <span class="clock-sep">:</span>
+            <span class="clock-min">00</span>
+          </div>
+          <div class="event-body">
+            <span class="event-tag">Heure</span>
+            <p class="event-main">13H00</p>
+            <p class="event-sub">Accueil des invités</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="message reveal">
+      <div class="message-card">
+        <p>
+          C'est avec une immense joie que nous vous invitons à partager ce moment unique de notre vie.
+          Votre présence serait pour nous le plus beau des cadeaux.
+        </p>
+      </div>
+    </section>
+
+    <a href="#rsvp" class="scroll-hint" id="scroll-hint" aria-label="Aller au formulaire de confirmation">
+      <span class="scroll-hint-text">Confirmer votre présence</span>
+      <span class="scroll-hint-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12l7 7 7-7"/>
+        </svg>
+      </span>
+    </a>
+
+    <section class="rsvp reveal" id="rsvp">
+      <div class="rsvp-card">
+        <div class="rsvp-frame rsvp-frame--tl" aria-hidden="true"></div>
+        <div class="rsvp-frame rsvp-frame--tr" aria-hidden="true"></div>
+        <div class="rsvp-frame rsvp-frame--bl" aria-hidden="true"></div>
+        <div class="rsvp-frame rsvp-frame--br" aria-hidden="true"></div>
+
+        <div class="rsvp-header">
+          <p class="rsvp-eyebrow">Réponse souhaitée</p>
+          <h2 class="rsvp-title">Confirmer votre présence</h2>
+          <div class="rsvp-ornament"><span>✦</span><span class="line"></span><span>✦</span></div>
+          <p class="rsvp-deadline">Merci de répondre avant le <strong>1er juillet 2026</strong></p>
+        </div>
+
+        <form id="rsvp-form" novalidate>
+          <fieldset class="form-section">
+            <legend class="form-section-title">
+              <span class="section-icon">👤</span>
+              Vos coordonnées
+            </legend>
+
+            <div class="field-row">
+              <div class="field field--elegant">
+                <label for="nom">Nom *</label>
+                <input type="text" id="nom" name="nom" required autocomplete="family-name" placeholder="Votre nom de famille">
+              </div>
+              <div class="field field--elegant">
+                <label for="prenom">Prénom *</label>
+                <input type="text" id="prenom" name="prenom" required autocomplete="given-name" placeholder="Votre prénom">
+              </div>
+            </div>
+
+            <div class="field field--elegant">
+              <label for="telephone">Numéro de téléphone *</label>
+              <div class="input-wrap">
+                <span class="input-icon" aria-hidden="true">📞</span>
+                <input type="tel" id="telephone" name="telephone" required autocomplete="tel" placeholder="07 XX XX XX XX">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-section">
+            <legend class="form-section-title">
+              <span class="section-icon">💍</span>
+              Votre réponse
+            </legend>
+
+            <div class="field">
+              <span class="label">Serez-vous des nôtres ? *</span>
+              <div class="radio-group">
+                <label class="radio-card radio-card--yes">
+                  <input type="radio" name="presence" value="oui" required>
+                  <span class="radio-glow" aria-hidden="true"></span>
+                  <span class="radio-icon">💐</span>
+                  <span class="radio-label">Oui, avec plaisir !</span>
+                  <span class="radio-hint">J'aurai la joie d'être présent(e)</span>
+                </label>
+                <label class="radio-card radio-card--no">
+                  <input type="radio" name="presence" value="non">
+                  <span class="radio-glow" aria-hidden="true"></span>
+                  <span class="radio-icon">💌</span>
+                  <span class="radio-label">Non, je ne pourrai pas</span>
+                  <span class="radio-hint">Avec mes pensées affectueuses</span>
+                </label>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="guests-panel" id="guests-field" hidden>
+            <div class="guests-panel-header">
+              <span class="section-icon">🥂</span>
+              <span>Votre accompagnement</span>
+            </div>
+            <div class="field-row">
+              <div class="field field--elegant">
+                <label for="nombreAdultes">Adultes (vous inclus)</label>
+                <div class="select-wrap">
+                  <select id="nombreAdultes" name="nombreAdultes">
+                    <option value="1">1 adulte</option>
+                    <option value="2">2 adultes</option>
+                    <option value="3">3 adultes</option>
+                    <option value="4">4 adultes</option>
+                    <option value="5">5 adultes</option>
+                    <option value="6">6 adultes</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field field--elegant">
+                <label for="nombreEnfants">Enfants</label>
+                <div class="select-wrap">
+                  <select id="nombreEnfants" name="nombreEnfants">
+                    <option value="0">0 enfant</option>
+                    <option value="1">1 enfant</option>
+                    <option value="2">2 enfants</option>
+                    <option value="3">3 enfants</option>
+                    <option value="4">4 enfants</option>
+                    <option value="5">5 enfants</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <fieldset class="form-section form-section--message">
+            <legend class="form-section-title">
+              <span class="section-icon">✉️</span>
+              Un mot pour les mariés
+            </legend>
+            <div class="field field--elegant">
+              <label for="message" class="sr-only">Message (optionnel)</label>
+              <div class="textarea-wrap">
+                <span class="quote-mark" aria-hidden="true">"</span>
+                <textarea id="message" name="message" rows="3" placeholder="Laissez un mot doux à Eric & Lopez..."></textarea>
+              </div>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <span class="btn-shine" aria-hidden="true"></span>
+            <span class="btn-text">Envoyer ma réponse</span>
+            <span class="btn-icon" aria-hidden="true">♥</span>
+          </button>
+          <p class="form-error" id="form-error" hidden></p>
+        </form>
+
+        <div class="success" id="success" hidden>
+          <div class="success-ring">💍</div>
+          <h3>Merci du fond du cœur</h3>
+          <p id="success-message">Votre réponse a bien été enregistrée.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer reveal">
+      <div class="ornament small"><span>✦</span><span class="line"></span><span>✦</span></div>
+      <p>Avec tout notre amour</p>
+      <p class="footer-names">Eric &amp; Lopez</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "invitation-mariage",
+  "version": "1.0.0",
+  "description": "Carte d'invitation numérique avec RSVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
