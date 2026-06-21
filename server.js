@@ -2,10 +2,10 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { storageMode, readRsvps, insertRsvp, deleteRsvp } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data', 'rsvp.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'mariage2026';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'mariage-secret-2026';
 const ADMIN_PATH = process.env.ADMIN_PATH || 'gestion-eric-lopez-2026';
@@ -26,22 +26,6 @@ function parseCookies(req) {
 
 function isAdmin(req) {
   return parseCookies(req).admin_token === ADMIN_TOKEN;
-}
-
-function readRsvps() {
-  try {
-    if (fs.existsSync(DATA_FILE)) {
-      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    }
-  } catch {
-    /* fichier corrompu ou absent */
-  }
-  return [];
-}
-
-function writeRsvps(rsvps) {
-  fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-  fs.writeFileSync(DATA_FILE, JSON.stringify(rsvps, null, 2), 'utf8');
 }
 
 function normalizeText(str) {
@@ -66,23 +50,6 @@ function findDuplicate(rsvps, nom, prenom, telephone) {
     const samePhone = nTel.length >= 8 && normalizePhone(r.telephone) === nTel;
     return sameName || samePhone;
   });
-}
-
-function migrateEntry(entry) {
-  if (!entry.telephone && entry.email) {
-    entry.telephone = entry.email;
-    delete entry.email;
-  }
-  if (!entry.nomComplet) {
-    entry.nomComplet = `${entry.nom || ''} ${entry.prenom || ''}`.trim();
-  }
-  if (entry.nombreAdultes === undefined) {
-    entry.nombreAdultes = entry.nombrePersonnes ?? (entry.presence === 'oui' ? 1 : 0);
-  }
-  if (entry.nombreEnfants === undefined) {
-    entry.nombreEnfants = 0;
-  }
-  return entry;
 }
 
 function buildEntry({ prenom, nom, telephone, presence, nombreAdultes, nombreEnfants, message }, id) {
@@ -119,6 +86,11 @@ function validateRsvpInput({ prenom, nom, telephone, presence }) {
   return null;
 }
 
+function handleError(res, err) {
+  console.error(err);
+  res.status(500).json({ error: 'Erreur serveur. Réessayez dans un instant.' });
+}
+
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body;
   if (password !== ADMIN_PASSWORD) {
@@ -140,97 +112,109 @@ app.get('/api/admin/check', (req, res) => {
   res.json({ authenticated: isAdmin(req) });
 });
 
-app.post('/api/rsvp', (req, res) => {
-  const error = validateRsvpInput(req.body);
-  if (error) {
-    return res.status(400).json({ error });
-  }
+app.post('/api/rsvp', async (req, res) => {
+  try {
+    const error = validateRsvpInput(req.body);
+    if (error) return res.status(400).json({ error });
 
-  const rsvps = readRsvps();
-  const duplicate = findDuplicate(rsvps, req.body.nom, req.body.prenom, req.body.telephone);
+    const rsvps = await readRsvps();
+    const duplicate = findDuplicate(rsvps, req.body.nom, req.body.prenom, req.body.telephone);
 
-  if (duplicate) {
-    return res.status(409).json({
-      duplicate: true,
-      error: `Bonjour ${duplicate.prenom}, vous êtes déjà inscrit(e) ! Votre présence a bien été enregistrée le ${new Date(duplicate.dateReponse).toLocaleDateString('fr-FR')}.`,
-    });
-  }
-
-  const entry = buildEntry(req.body);
-  rsvps.push(entry);
-  writeRsvps(rsvps);
-
-  res.json({ success: true, message: 'Merci ! Votre réponse a bien été enregistrée.' });
-});
-
-app.post('/api/rsvp/import', (req, res) => {
-  if (!isAdmin(req)) {
-    return res.status(401).json({ error: 'Accès non autorisé.' });
-  }
-
-  const { entries } = req.body;
-  if (!Array.isArray(entries) || !entries.length) {
-    return res.status(400).json({ error: 'Aucune entrée à importer.' });
-  }
-
-  const rsvps = readRsvps();
-  let imported = 0;
-  let skipped = 0;
-  const skippedRows = [];
-
-  entries.forEach((raw, index) => {
-    const nom = raw.nom?.trim();
-    const prenom = raw.prenom?.trim();
-    const telephone = raw.telephone?.trim();
-    const presence = raw.presence === 'non' ? 'non' : 'oui';
-
-    if (!nom || !prenom || !telephone) {
-      skipped++;
-      skippedRows.push({ line: index + 1, reason: 'Données incomplètes' });
-      return;
+    if (duplicate) {
+      return res.status(409).json({
+        duplicate: true,
+        error: `Bonjour ${duplicate.prenom}, vous êtes déjà inscrit(e) ! Votre présence a bien été enregistrée le ${new Date(duplicate.dateReponse).toLocaleDateString('fr-FR')}.`,
+      });
     }
 
-    if (findDuplicate(rsvps, nom, prenom, telephone)) {
-      skipped++;
-      skippedRows.push({ line: index + 1, name: `${nom} ${prenom}`, reason: 'Doublon' });
-      return;
+    const entry = buildEntry(req.body);
+    await insertRsvp(entry);
+    res.json({ success: true, message: 'Merci ! Votre réponse a bien été enregistrée.' });
+  } catch (err) {
+    handleError(res, err);
+  }
+});
+
+app.post('/api/rsvp/import', async (req, res) => {
+  if (!isAdmin(req)) {
+    return res.status(401).json({ error: 'Accès non autorisé.' });
+  }
+
+  try {
+    const { entries } = req.body;
+    if (!Array.isArray(entries) || !entries.length) {
+      return res.status(400).json({ error: 'Aucune entrée à importer.' });
     }
 
-    const entry = buildEntry(
-      {
-        nom,
-        prenom,
-        telephone,
-        presence,
-        nombreAdultes: raw.nombreAdultes ?? raw.adultes ?? 1,
-        nombreEnfants: raw.nombreEnfants ?? raw.enfants ?? 0,
-        message: raw.message || '',
-      },
-      `${Date.now()}-${index}`
-    );
+    let rsvps = await readRsvps();
+    let imported = 0;
+    let skipped = 0;
+    const skippedRows = [];
 
-    rsvps.push(entry);
-    imported++;
-  });
+    for (let index = 0; index < entries.length; index++) {
+      const raw = entries[index];
+      const nom = raw.nom?.trim();
+      const prenom = raw.prenom?.trim();
+      const telephone = raw.telephone?.trim();
+      const presence = raw.presence === 'non' ? 'non' : 'oui';
 
-  writeRsvps(rsvps);
-  res.json({ imported, skipped, skippedRows });
+      if (!nom || !prenom || !telephone) {
+        skipped++;
+        skippedRows.push({ line: index + 1, reason: 'Données incomplètes' });
+        continue;
+      }
+
+      if (findDuplicate(rsvps, nom, prenom, telephone)) {
+        skipped++;
+        skippedRows.push({ line: index + 1, name: `${nom} ${prenom}`, reason: 'Doublon' });
+        continue;
+      }
+
+      const entry = buildEntry(
+        {
+          nom,
+          prenom,
+          telephone,
+          presence,
+          nombreAdultes: raw.nombreAdultes ?? raw.adultes ?? 1,
+          nombreEnfants: raw.nombreEnfants ?? raw.enfants ?? 0,
+          message: raw.message || '',
+        },
+        `${Date.now()}-${index}`
+      );
+
+      await insertRsvp(entry);
+      rsvps.push(entry);
+      imported++;
+    }
+
+    res.json({ imported, skipped, skippedRows });
+  } catch (err) {
+    handleError(res, err);
+  }
 });
 
-app.get('/api/rsvp', (req, res) => {
+app.get('/api/rsvp', async (req, res) => {
   if (!isAdmin(req)) {
     return res.status(401).json({ error: 'Accès non autorisé.' });
   }
-  res.json(readRsvps().map(migrateEntry));
+  try {
+    res.json(await readRsvps());
+  } catch (err) {
+    handleError(res, err);
+  }
 });
 
-app.delete('/api/rsvp/:id', (req, res) => {
+app.delete('/api/rsvp/:id', async (req, res) => {
   if (!isAdmin(req)) {
     return res.status(401).json({ error: 'Accès non autorisé.' });
   }
-  const rsvps = readRsvps().filter((r) => r.id !== req.params.id);
-  writeRsvps(rsvps);
-  res.json({ success: true });
+  try {
+    await deleteRsvp(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    handleError(res, err);
+  }
 });
 
 function serveAdminPage(_req, res) {
@@ -257,7 +241,11 @@ app.get('/admin.html', (_req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(PORT, () => {
+  const mode = storageMode();
   console.log(`\n💍 Invitation : http://localhost:${PORT}`);
-  console.log(`🔐 Espace admin (privé) : http://localhost:${PORT}/${ADMIN_PATH}`);
-  console.log(`   Mot de passe : ${ADMIN_PASSWORD}\n`);
+  console.log(`🔐 Espace admin : http://localhost:${PORT}/${ADMIN_PATH}`);
+  console.log(`📦 Stockage : ${mode === 'supabase' ? 'Supabase (permanent)' : 'fichier local (temporaire sur Render)'}`);
+  if (mode !== 'supabase') {
+    console.log('⚠️  Configurez SUPABASE_URL et SUPABASE_SERVICE_KEY sur Render pour ne plus perdre les données.\n');
+  }
 });
